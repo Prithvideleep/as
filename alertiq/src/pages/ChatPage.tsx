@@ -81,21 +81,39 @@ interface SelectorProps {
 }
 
 function ChatIncidentSelector({ value, onChange }: SelectorProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen]   = useState(false);
+  const [query, setQuery] = useState("");
+  const ref       = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const selected = value ? incidents.find((i) => i.id === value) : null;
+  // Auto-focus search when opened
+  useEffect(() => {
+    if (open) setTimeout(() => searchRef.current?.focus(), 50);
+    else setQuery("");
+  }, [open]);
 
+  const selected = value ? incidents.find((i) => i.id === value) : null;
   const triggerLabel = selected ? selected.name : "General Chat";
-  const triggerDot = selected ? severityColor[selected.severity] : "#6B7280";
+  const triggerDot   = selected ? severityColor[selected.severity] : "#6B7280";
+
+  const filteredIncidents = query.trim()
+    ? incidents.filter(
+        (i) =>
+          i.name.toLowerCase().includes(query.toLowerCase()) ||
+          i.id.toLowerCase().includes(query.toLowerCase())
+      )
+    : incidents;
 
   return (
     <div ref={ref} style={{ position: "relative", flex: 1, minWidth: 0 }}>
@@ -124,76 +142,100 @@ function ChatIncidentSelector({ value, onChange }: SelectorProps) {
       </button>
 
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, maxWidth: 560, backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: 12, boxShadow: "0 10px 40px rgba(0,0,0,0.14)", zIndex: 200, overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, maxWidth: 560, backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: 12, boxShadow: "0 10px 40px rgba(0,0,0,0.14)", zIndex: 200, overflow: "hidden", display: "flex", flexDirection: "column" }}>
 
-          {/* Header */}
-          <div style={{ padding: "8px 14px 6px", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", borderBottom: "1px solid var(--color-border)" }}>
-            Select Incident
+          {/* Search input */}
+          <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--color-border)", flexShrink: 0 }}>
+            <div style={{ position: "relative" }}>
+              <Search style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", width: 12, height: 12, color: "var(--color-text-muted)" }} />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or ID…"
+                style={{ width: "100%", paddingLeft: 28, paddingRight: query ? 28 : 10, paddingTop: 7, paddingBottom: 7, borderRadius: 8, border: "1px solid var(--color-border)", backgroundColor: "var(--color-hover-bg)", fontSize: 12, color: "var(--color-text-primary)", outline: "none", boxSizing: "border-box" }}
+              />
+              {query && (
+                <button onClick={() => setQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", display: "flex", padding: 0 }}>
+                  <XCircle style={{ width: 11, height: 11 }} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* "No Incident" / General option */}
-          <button
-            onClick={() => { onChange(null); setOpen(false); }}
-            style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 14px", textAlign: "left", cursor: "pointer", backgroundColor: value === null ? `${ACCENT}08` : "transparent", border: "none", borderBottom: "1px solid var(--color-border)", transition: "background-color 0.12s" }}
-            onMouseEnter={(e) => { if (value !== null) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-hover-bg)"; }}
-            onMouseLeave={(e) => { if (value !== null) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}
-          >
-            <span style={{ width: 4, height: 36, borderRadius: 4, backgroundColor: "#6B7280", flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
-                <MessageCircle style={{ width: 13, height: 13, color: "#6B7280", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: value === null ? 700 : 500, color: value === null ? "var(--color-text-primary)" : "var(--color-text-secondary)" }}>
-                  General Chat
-                </span>
-                {value === null && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: ACCENT, backgroundColor: `${ACCENT}15`, padding: "1px 7px", borderRadius: 999 }}>Current</span>
-                )}
-              </div>
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No incident context — ask general questions</span>
-            </div>
-            <XCircle style={{ width: 14, height: 14, color: "#6B7280", flexShrink: 0 }} />
-          </button>
-
-          {/* Incidents */}
-          {incidents.map((inc) => {
-            const isActive = inc.id === value;
-            const color = severityColor[inc.severity as Severity];
-            const sm = statusMeta[inc.status] ?? statusMeta.active;
-            const SIcon = sm.icon;
-            return (
-              <button
-                key={inc.id}
-                onClick={() => { onChange(inc.id); setOpen(false); }}
-                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 14px", textAlign: "left", cursor: "pointer", backgroundColor: isActive ? `${ACCENT}08` : "transparent", border: "none", borderBottom: "1px solid var(--color-border)", transition: "background-color 0.12s" }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-hover-bg)"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}
-              >
-                <span style={{ width: 4, height: 36, borderRadius: 4, backgroundColor: color, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
-                    <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {inc.name}
-                    </span>
-                    {isActive && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: ACCENT, backgroundColor: `${ACCENT}15`, padding: "1px 7px", borderRadius: 999, flexShrink: 0 }}>Current</span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{inc.id}</span>
-                    <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>·</span>
-                    <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{inc.alertCount} alerts</span>
-                    <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>·</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: sm.color }}>
-                      <SIcon style={{ width: 10, height: 10 }} />{inc.status}
-                    </span>
-                  </div>
+          {/* General Chat — always pinned, never filtered */}
+          {!query && (
+            <button
+              onClick={() => { onChange(null); setOpen(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 14px", textAlign: "left", cursor: "pointer", backgroundColor: value === null ? `${ACCENT}08` : "transparent", border: "none", borderBottom: "1px solid var(--color-border)", flexShrink: 0, transition: "background-color 0.12s" }}
+              onMouseEnter={(e) => { if (value !== null) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-hover-bg)"; }}
+              onMouseLeave={(e) => { if (value !== null) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"; }}
+            >
+              <span style={{ width: 4, height: 36, borderRadius: 4, backgroundColor: "#6B7280", flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2 }}>
+                  <MessageCircle style={{ width: 13, height: 13, color: "#6B7280", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: value === null ? 700 : 500, color: value === null ? "var(--color-text-primary)" : "var(--color-text-secondary)" }}>General Chat</span>
+                  {value === null && <span style={{ fontSize: 10, fontWeight: 700, color: ACCENT, backgroundColor: `${ACCENT}15`, padding: "1px 7px", borderRadius: 999 }}>Current</span>}
                 </div>
-                <span style={{ padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, backgroundColor: `${color}20`, color, flexShrink: 0, textTransform: "capitalize" }}>
-                  {inc.severity}
-                </span>
-              </button>
-            );
-          })}
+                <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>No incident context — ask general questions</span>
+              </div>
+              <XCircle style={{ width: 14, height: 14, color: "#6B7280", flexShrink: 0 }} />
+            </button>
+          )}
+
+          {/* Scrollable incident list */}
+          <div style={{ overflowY: "auto", maxHeight: 300 }}>
+            {filteredIncidents.length === 0 ? (
+              <div style={{ padding: "20px 14px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
+                No incidents match "{query}"
+              </div>
+            ) : (
+              filteredIncidents.map((inc) => {
+                const isActive = inc.id === value;
+                const color = severityColor[inc.severity as Severity];
+                const sm = statusMeta[inc.status] ?? statusMeta.active;
+                const SIcon = sm.icon;
+                return (
+                  <button
+                    key={inc.id}
+                    onClick={() => { onChange(inc.id); setOpen(false); setQuery(""); }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "10px 14px", textAlign: "left", cursor: "pointer", backgroundColor: isActive ? `${ACCENT}08` : "transparent", border: "none", borderBottom: "1px solid var(--color-border)", transition: "background-color 0.12s" }}
+                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-hover-bg)"; }}
+                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.backgroundColor = isActive ? `${ACCENT}08` : "transparent"; }}
+                  >
+                    <span style={{ width: 4, height: 36, borderRadius: 4, backgroundColor: color, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {inc.name}
+                        </span>
+                        {isActive && <span style={{ fontSize: 10, fontWeight: 700, color: ACCENT, backgroundColor: `${ACCENT}15`, padding: "1px 7px", borderRadius: 999, flexShrink: 0 }}>Current</span>}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{inc.id}</span>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>·</span>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{inc.alertCount} alerts</span>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>·</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: sm.color }}>
+                          <SIcon style={{ width: 10, height: 10 }} />{inc.status}
+                        </span>
+                      </div>
+                    </div>
+                    <span style={{ padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600, backgroundColor: `${color}20`, color, flexShrink: 0, textTransform: "capitalize" }}>
+                      {inc.severity}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer count */}
+          <div style={{ padding: "6px 14px", borderTop: "1px solid var(--color-border)", fontSize: 10, color: "var(--color-text-muted)", flexShrink: 0 }}>
+            {filteredIncidents.length} of {incidents.length} incidents
+          </div>
         </div>
       )}
     </div>
