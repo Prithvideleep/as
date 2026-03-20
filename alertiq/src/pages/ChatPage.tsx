@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { chatResponses, suggestedQueries, incidents, type Severity } from "../data/mockData";
+import BackButton from "../components/shared/BackButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -451,12 +452,13 @@ export default function ChatPage() {
   const suggestions = chatIncidentId ? (suggestedQueries[chatIncidentId] ?? []) : ["What can you help with?", "Tell me about general monitoring best practices"];
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", padding: 24, paddingBottom: 16, overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", padding: "var(--page-pad)", paddingBottom: 16, overflow: "hidden" }}>
       <div style={{ maxWidth: 860, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
 
         {/* ── Header ────────────────────────────────────────────── */}
         <div style={{ flexShrink: 0, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <BackButton />
             <div style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: "rgba(235,89,40,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <MessageSquare style={{ width: 17, height: 17, color: ACCENT }} />
             </div>

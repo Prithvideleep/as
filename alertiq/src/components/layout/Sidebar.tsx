@@ -22,13 +22,18 @@ const navItems = [
   { to: "/chat",          icon: MessageSquare,   label: "Triage"       },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  mobileOpen = false,
+  onNavigate,
+}: {
+  mobileOpen?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <aside
+      className="sidebar"
+      data-open={mobileOpen ? "true" : "false"}
       style={{
-        width: 220,
-        flexShrink: 0,
-        height: "100vh",
         backgroundColor: SIDEBAR_BG,
         borderRight: `1px solid ${SIDEBAR_BORDER}`,
         display: "flex",
@@ -90,6 +95,7 @@ export default function Sidebar() {
               backgroundColor: isActive ? ACTIVE_BG : "transparent",
               borderLeft: isActive ? `3px solid ${ACTIVE_COLOR}` : "3px solid transparent",
             })}
+            onClick={() => onNavigate?.()}
             onMouseEnter={(e) => {
               const el = e.currentTarget;
               if (!el.getAttribute("aria-current")) {

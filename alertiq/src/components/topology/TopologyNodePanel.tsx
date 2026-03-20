@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowUpRight, ArrowDownRight, AlertTriangle, Server, Database, Globe, Monitor, Layers, GitBranch } from "lucide-react";
-import type { TopologyData, TopologyNode, NodeType, BlastRadiusItem } from "../../data/mockData";
+import type { TopologyData, TopologyNode, NodeType, BlastRadiusItem, RootCause } from "../../data/mockData";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -25,10 +25,11 @@ interface Props {
   node: TopologyNode | null;
   topology: TopologyData;
   blastRadius: BlastRadiusItem[];
+  rootCauses: RootCause[];
   onClose: () => void;
 }
 
-export default function TopologyNodePanel({ node, topology, blastRadius, onClose }: Props) {
+export default function TopologyNodePanel({ node, topology, blastRadius, rootCauses, onClose }: Props) {
   const upstream = node
     ? topology.edges
         .filter((e) => e.target === node.id)
@@ -46,6 +47,11 @@ export default function TopologyNodePanel({ node, topology, blastRadius, onClose
   const blastItem = node
     ? blastRadius.find((b) => b.service === node.id)
     : null;
+
+  const rootCauseIdx = node
+    ? rootCauses.findIndex((r) => r.service === node.id)
+    : -1;
+  const rootCause = rootCauseIdx >= 0 ? rootCauses[rootCauseIdx] : null;
 
   return (
     <AnimatePresence>
@@ -77,6 +83,20 @@ export default function TopologyNodePanel({ node, topology, blastRadius, onClose
             <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.65 }}>
               {node.description}
             </p>
+
+            {/* Root cause alignment */}
+            {rootCause && (
+              <Section icon={<AlertTriangle style={{ width: 13, height: 13 }} />} title={rootCauseIdx === 0 ? "Primary Root Cause" : "Suspected Root Cause"} iconColor={rootCauseIdx === 0 ? "#EF4444" : "#F97316"}>
+                <div style={{ padding: "8px 10px", borderRadius: 8, backgroundColor: rootCauseIdx === 0 ? "rgba(239,68,68,0.07)" : "rgba(249,115,22,0.07)", border: `1px solid ${rootCauseIdx === 0 ? "rgba(239,68,68,0.2)" : "rgba(249,115,22,0.2)"}` }}>
+                  <p style={{ fontSize: 12, color: rootCauseIdx === 0 ? "#EF4444" : "#F97316", fontWeight: 600, marginBottom: 6 }}>
+                    {rootCause.confidence}% confidence
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
+                    {rootCause.description}
+                  </p>
+                </div>
+              </Section>
+            )}
 
             {/* Blast radius impact */}
             {blastItem && (

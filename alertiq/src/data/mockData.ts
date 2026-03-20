@@ -49,6 +49,10 @@ export interface IncidentDetail {
   timeline: TimelineEvent[];
   blastRadius: BlastRadiusItem[];
   historicalRefs: HistoricalRef[];
+  /** What was actually done to resolve (for Archive) */
+  resolutionSummary?: string;
+  /** Optional step list (for runbooks / future UI) */
+  resolutionSteps?: string[];
 }
 
 export type NodeType = "service" | "database" | "api" | "application" | "infrastructure" | "pipeline";
@@ -125,7 +129,7 @@ export const incidents: Incident[] = [
     status: "resolved",
     alertCount: 5,
     impactedServices: 2,
-    timestamp: "2026-03-17T05:15:00Z",
+    timestamp: "2026-03-15T05:15:00Z",
   },
   {
     id: "CL-006",
@@ -161,7 +165,7 @@ export const incidents: Incident[] = [
     status: "resolved",
     alertCount: 7,
     impactedServices: 2,
-    timestamp: "2026-03-17T04:30:00Z",
+    timestamp: "2026-03-10T04:30:00Z",
   },
   {
     id: "CL-010",
@@ -197,7 +201,7 @@ export const incidents: Incident[] = [
     status: "resolved",
     alertCount: 8,
     impactedServices: 1,
-    timestamp: "2026-03-17T03:50:00Z",
+    timestamp: "2026-02-25T03:50:00Z",
   },
 ];
 
@@ -532,6 +536,12 @@ export const incidentDetails: Record<string, IncidentDetail> = {
     historicalRefs: [
       { id: "INC-2025-0112", name: "DNS Provider Outage — Route53 Partial Degradation", date: "Mar 3, 2025", resolution: "Switched to secondary DNS provider as fallback; added DNS health check to monitoring dashboard.", similarity: 72 },
     ],
+    resolutionSummary: "Switched API gateway DNS resolution to use a secondary resolver during the provider incident and enabled DNS caching (60s) on the gateway. Added a 30-minute early warning alert for DNS latency.",
+    resolutionSteps: [
+      "Enabled fallback DNS resolver for external lookups",
+      "Set API gateway DNS cache TTL to 60s",
+      "Added DNS latency SLO alerting and runbook link",
+    ],
   },
   "CL-006": {
     id: "CL-006", name: "Kubernetes Node Memory Pressure", severity: "critical", status: "active",
@@ -627,6 +637,12 @@ export const incidentDetails: Record<string, IncidentDetail> = {
     historicalRefs: [
       { id: "INC-2025-0203", name: "Production Cert Expiry Outage", date: "Apr 14, 2025", resolution: "Implemented 30-day expiry alerting; automated ACME token rotation.", similarity: 71 },
     ],
+    resolutionSummary: "Manually renewed the API gateway certificate, rotated the ACME account token for cert-manager, and added expiry/failure alerts so renewals can’t silently fail again.",
+    resolutionSteps: [
+      "Issued and deployed a renewed certificate for api-gateway",
+      "Rotated cert-manager ACME token and verified challenge flow",
+      "Added alerts for renewal failures and 30/14/7-day expiry",
+    ],
   },
   "CL-010": {
     id: "CL-010", name: "Load Balancer Health Check Failures", severity: "critical", status: "active",
@@ -719,6 +735,12 @@ export const incidentDetails: Record<string, IncidentDetail> = {
     ],
     historicalRefs: [
       { id: "INC-2025-0315", name: "Twilio Token Rotation Broke SMS", date: "Jul 22, 2025", resolution: "All third-party credentials migrated to dynamic secret injection; services updated to reload secrets without restart.", similarity: 85 },
+    ],
+    resolutionSummary: "Updated the SendGrid API key secret and restarted notification-service to reload credentials. Implemented dynamic secret reload to avoid restarts for future rotations.",
+    resolutionSteps: [
+      "Updated SendGrid API key in secrets manager",
+      "Restarted notification-service to reload the key",
+      "Added health check for email provider auth failures",
     ],
   },
 };

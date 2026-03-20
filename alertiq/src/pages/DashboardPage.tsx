@@ -1,17 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, AlertOctagon, Server, Search, X } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { incidents, dashboardMetrics } from "../data/mockData";
+import { incidents, dashboardMetrics, incidentDetails } from "../data/mockData";
 import MetricCard from "../components/shared/MetricCard";
-import IncidentCard from "../components/dashboard/IncidentCard";
 import IncidentRow from "../components/dashboard/IncidentRow";
+import ArchiveIncidentRow from "../components/dashboard/ArchiveIncidentRow";
 
 // ─── Sort helpers ─────────────────────────────────────────────────────────────
 
 const SEV_RANK: Record<string, number>    = { critical: 0, high: 1, medium: 2, low: 3 };
 const STATUS_RANK: Record<string, number> = { active: 0, investigating: 1, resolved: 2 };
+const SEV_COLOR: Record<string, string> = {
+  critical: "#EF4444",
+  high: "#F97316",
+  medium: "#F59E0B",
+  low: "#22C55E",
+};
 
 function sortIncidents(list: typeof incidents) {
   return [...list].sort((a, b) => {
@@ -23,21 +29,30 @@ function sortIncidents(list: typeof incidents) {
   });
 }
 
-type StatusFilter = "all" | "active" | "investigating" | "resolved";
+type DashboardTab = "live" | "archive";
+type SeverityFilter = "all" | "critical" | "high" | "medium" | "low";
 
-const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: "all",           label: "All"           },
-  { id: "active",        label: "Active"        },
-  { id: "investigating", label: "Investigating" },
-  { id: "resolved",      label: "Resolved"      },
-];
+function toISODateLocal(d: Date) {
+  // YYYY-MM-DD in local time for <input type="date" />
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { selectedIncidentId, setSelectedIncidentId } = useAppContext();
 
+  const [tab, setTab] = useState<DashboardTab>("live");
   const [query, setQuery]             = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [liveSeverityFilter, setLiveSeverityFilter] = useState<SeverityFilter>("all");
+  const [livePage, setLivePage] = useState(0);
+  const [archiveRange, setArchiveRange] = useState<"24h" | "7d" | "30d" | "custom">("7d");
+  const [archiveSeverity, setArchiveSeverity] = useState<SeverityFilter>("all");
+
+  const [archiveCustomFrom, setArchiveCustomFrom] = useState(() =>
+    toISODateLocal(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+  );
+  const [archiveCustomTo, setArchiveCustomTo] = useState(() => toISODateLocal(new Date()));
 
   const handleSelect = (id: string) => {
     setSelectedIncidentId(id);
@@ -46,21 +61,33 @@ export default function DashboardPage() {
 
   const sorted = useMemo(() => sortIncidents(incidents), []);
 
-  // Priority spotlight: active + critical or high, max 4 cards
-  const spotlight = useMemo(
-    () => sorted.filter((i) => i.status === "active" && (i.severity === "critical" || i.severity === "high")).slice(0, 4),
-    [sorted]
-  );
-
   // Full filtered list
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sorted.filter((i) => {
-      const matchesStatus = statusFilter === "all" || i.status === statusFilter;
+      const matchesSeverity = liveSeverityFilter === "all" || i.severity === liveSeverityFilter;
       const matchesQuery  = !q || i.name.toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
-      return matchesStatus && matchesQuery;
+      return matchesSeverity && matchesQuery;
     });
-  }, [sorted, query, statusFilter]);
+  }, [sorted, query, liveSeverityFilter]);
+
+  const LIVE_PAGE_SIZE = 10;
+  const liveTotalPages = Math.max(1, Math.ceil(filtered.length / LIVE_PAGE_SIZE));
+
+  const liveStart = livePage * LIVE_PAGE_SIZE;
+  const livePageItems = useMemo(() => {
+    return filtered.slice(liveStart, liveStart + LIVE_PAGE_SIZE);
+  }, [filtered, liveStart]);
+
+  // Reset paging when filters/search change
+  useEffect(() => {
+    setLivePage(0);
+  }, [query, liveSeverityFilter]);
+
+  // Clamp if filtered list shrinks
+  useEffect(() => {
+    setLivePage((p) => Math.min(p, liveTotalPages - 1));
+  }, [liveTotalPages]);
 
   // Count per status for filter chip badges
   const counts = useMemo(() => ({
@@ -70,8 +97,42 @@ export default function DashboardPage() {
     resolved:      incidents.filter((i) => i.status === "resolved").length,
   }), []);
 
+  const archiveFiltered = useMemo(() => {
+    const now = Date.now();
+    const q = query.trim().toLowerCase();
+
+    return [...incidents]
+      .filter((i) => i.status === "resolved")
+      .filter((i) => {
+        const ts = new Date(i.timestamp).getTime();
+        if (!Number.isFinite(ts)) return true;
+
+        if (archiveRange === "custom") {
+          const fromMs = archiveCustomFrom
+            ? new Date(`${archiveCustomFrom}T00:00:00`).getTime()
+            : -Infinity;
+          const toMs = archiveCustomTo
+            ? new Date(`${archiveCustomTo}T23:59:59.999`).getTime()
+            : Infinity;
+          return ts >= fromMs && ts <= toMs;
+        }
+
+        const rangeMs =
+          archiveRange === "24h"
+            ? 24 * 60 * 60 * 1000
+            : archiveRange === "7d"
+              ? 7 * 24 * 60 * 60 * 1000
+              : 30 * 24 * 60 * 60 * 1000;
+        const cutoff = now - rangeMs;
+        return ts >= cutoff;
+      })
+      .filter((i) => archiveSeverity === "all" || i.severity === archiveSeverity)
+      .filter((i) => !q || i.name.toLowerCase().includes(q) || i.id.toLowerCase().includes(q))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [archiveRange, archiveCustomFrom, archiveCustomTo, query, archiveSeverity]);
+
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+    <div style={{ flex: 1, overflowY: "auto", padding: "var(--page-pad)" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
         {/* ── Page title ─────────────────────────────────── */}
@@ -85,36 +146,49 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* ── Metric cards ────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 18 }}>
           <MetricCard title="Active Clusters"   value={dashboardMetrics.activeClusters}   icon={<Layers     style={{ width: 18, height: 18 }} />} />
           <MetricCard title="Critical Alerts"   value={dashboardMetrics.criticalAlerts}   icon={<AlertOctagon style={{ width: 18, height: 18 }} />} iconColor="var(--color-critical)" />
           <MetricCard title="Impacted Services" value={dashboardMetrics.impactedServices} icon={<Server     style={{ width: 18, height: 18 }} />} iconColor="var(--color-high)" />
         </div>
 
-        {/* ── Priority spotlight ──────────────────────────── */}
-        {spotlight.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ marginBottom: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#EF4444", boxShadow: "0 0 6px #EF4444", animation: "pulse-glow 2s infinite" }} />
-              <h2 style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                Needs Attention
-              </h2>
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                — {spotlight.length} active critical / high severity
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(spotlight.length, 2)}, 1fr)`, gap: 12 }}>
-              {spotlight.map((incident, i) => (
-                <motion.div key={incident.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-                  <IncidentCard incident={incident} isSelected={selectedIncidentId === incident.id} onClick={() => handleSelect(incident.id)} />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {/* ── Tabs ────────────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {([
+            { id: "live" as const, label: "Live" },
+            { id: "archive" as const, label: `Archive (${counts.resolved})` },
+          ]).map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setTab(t.id);
+                  setQuery("");
+                  setLiveSeverityFilter("all");
+                  setArchiveSeverity("all");
+                }}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 999,
+                  border: `1px solid ${active ? "rgba(235,89,40,0.4)" : "var(--color-border)"}`,
+                  backgroundColor: active ? "rgba(235,89,40,0.10)" : "var(--color-bg-card)",
+                  color: active ? "#EB5928" : "var(--color-text-muted)",
+                  fontSize: 12,
+                  fontWeight: active ? 800 : 600,
+                  cursor: "pointer",
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* ── All incidents section ───────────────────────── */}
-        <div>
+        {tab === "live" && (
+          <>
+            {/* ── All incidents section ───────────────────────── */}
+            <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text-primary)" }}>
               All Incidents
@@ -141,27 +215,40 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Filter chips */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-            {STATUS_FILTERS.map((f) => {
-              const active = statusFilter === f.id;
+          {/* Severity filter chips (same levels as Archive) */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+            {(
+              [
+                { id: "all" as const, label: "All" },
+                { id: "critical" as const, label: "Critical" },
+                { id: "high" as const, label: "High" },
+                { id: "medium" as const, label: "Medium" },
+                { id: "low" as const, label: "Low" },
+              ] as const
+            ).map((s) => {
+              const active = liveSeverityFilter === s.id;
+              const color = s.id === "all" ? "#EB5928" : SEV_COLOR[s.id];
               return (
                 <button
-                  key={f.id}
-                  onClick={() => setStatusFilter(f.id)}
+                  key={s.id}
+                  onClick={() => setLiveSeverityFilter(s.id)}
                   style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: active ? 700 : 500,
-                    backgroundColor: active ? "rgba(235,89,40,0.10)" : "var(--color-bg-card)",
-                    border: `1px solid ${active ? "rgba(235,89,40,0.4)" : "var(--color-border)"}`,
-                    color: active ? "#EB5928" : "var(--color-text-muted)",
-                    cursor: "pointer", transition: "all 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "5px 12px",
+                    borderRadius: 999,
+                    border: `1px solid ${active ? `${color}55` : "var(--color-border)"}`,
+                    backgroundColor: active ? `${color}12` : "var(--color-bg-card)",
+                    color: active ? color : "var(--color-text-muted)",
+                    fontSize: 12,
+                    fontWeight: active ? 800 : 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
                   }}
                 >
-                  {f.label}
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "0px 5px", borderRadius: 999, backgroundColor: active ? "rgba(235,89,40,0.15)" : "var(--color-hover-bg)", color: active ? "#EB5928" : "var(--color-text-muted)" }}>
-                    {counts[f.id]}
-                  </span>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: s.id === "all" ? "#6B7280" : color, flexShrink: 0 }} />
+                  {s.label}
                 </button>
               );
             })}
@@ -187,19 +274,244 @@ export default function DashboardPage() {
                   No incidents match your filter
                 </div>
               ) : (
-                filtered.map((incident, i) => (
+                  livePageItems.map((incident, i) => (
                   <IncidentRow
                     key={incident.id}
                     incident={incident}
                     isSelected={selectedIncidentId === incident.id}
                     onClick={() => handleSelect(incident.id)}
-                    index={i}
+                      index={liveStart + i}
                   />
                 ))
               )}
             </AnimatePresence>
           </div>
-        </div>
+
+            {/* Pagination */}
+            {filtered.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 4px 0" }}>
+                <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                  Page {livePage + 1} of {liveTotalPages}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setLivePage((p) => Math.max(0, p - 1))}
+                    disabled={livePage <= 0}
+                    style={{ padding: "7px 12px", borderRadius: 10, border: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)", cursor: livePage <= 0 ? "not-allowed" : "pointer", opacity: livePage <= 0 ? 0.6 : 1 }}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setLivePage((p) => Math.min(liveTotalPages - 1, p + 1))}
+                    disabled={livePage >= liveTotalPages - 1}
+                    style={{ padding: "7px 12px", borderRadius: 10, border: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)", cursor: livePage >= liveTotalPages - 1 ? "not-allowed" : "pointer", opacity: livePage >= liveTotalPages - 1 ? 0.6 : 1 }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+            </div>
+          </>
+        )}
+
+        {tab === "archive" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text-primary)" }}>
+                Incident Archive
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-muted)", marginLeft: 8 }}>
+                  {archiveFiltered.length} results
+                </span>
+              </h2>
+
+              {/* Search */}
+              <div style={{ position: "relative", flex: "0 0 auto" }}>
+                <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "var(--color-text-muted)" }} />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search resolved incidents…"
+                  style={{ paddingLeft: 30, paddingRight: query ? 30 : 12, paddingTop: 7, paddingBottom: 7, width: 240, borderRadius: 8, border: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-card)", fontSize: 12, color: "var(--color-text-primary)", outline: "none" }}
+                />
+                {query && (
+                  <button onClick={() => setQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", display: "flex", padding: 0 }}>
+                    <X style={{ width: 12, height: 12 }} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Date range chips */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {([
+                { id: "24h" as const, label: "Last 24h" },
+                { id: "7d" as const, label: "Last 7d" },
+                { id: "30d" as const, label: "Last 30d" },
+                { id: "custom" as const, label: "Custom" },
+              ]).map((r) => {
+                const active = archiveRange === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => setArchiveRange(r.id)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      border: `1px solid ${active ? "rgba(59,130,246,0.45)" : "var(--color-border)"}`,
+                      backgroundColor: active ? "rgba(59,130,246,0.12)" : "var(--color-bg-card)",
+                      color: active ? "#93C5FD" : "var(--color-text-muted)",
+                      fontSize: 12,
+                      fontWeight: active ? 800 : 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom range */}
+            {archiveRange === "custom" && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  marginBottom: 12,
+                  flexWrap: "wrap",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid var(--color-border)",
+                  backgroundColor: "var(--color-bg-card)",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "var(--color-text-muted)" }}>From</span>
+                  <input
+                    type="date"
+                    value={archiveCustomFrom}
+                    onChange={(e) => setArchiveCustomFrom(e.target.value)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: "1px solid var(--color-border)",
+                      backgroundColor: "var(--color-bg-card)",
+                      color: "var(--color-text-primary)",
+                      colorScheme: "light",
+                      caretColor: "var(--color-text-primary)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "var(--color-text-muted)" }}>To</span>
+                  <input
+                    type="date"
+                    value={archiveCustomTo}
+                    onChange={(e) => setArchiveCustomTo(e.target.value)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: "1px solid var(--color-border)",
+                      backgroundColor: "var(--color-bg-card)",
+                      color: "var(--color-text-primary)",
+                      colorScheme: "light",
+                      caretColor: "var(--color-text-primary)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setArchiveCustomFrom(toISODateLocal(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
+                    setArchiveCustomTo(toISODateLocal(new Date()));
+                  }}
+                  style={{
+                    marginLeft: "auto",
+                    padding: "7px 12px",
+                    borderRadius: 999,
+                    border: "1px solid var(--color-border)",
+                    backgroundColor: "var(--color-bg-card)",
+                    color: "var(--color-text-muted)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                  title="Reset to last 7 days"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+
+            {/* Severity chips (consistent with Live) */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              {(
+                [
+                  { id: "all" as const, label: "All" },
+                  { id: "critical" as const, label: "Critical" },
+                  { id: "high" as const, label: "High" },
+                  { id: "medium" as const, label: "Medium" },
+                  { id: "low" as const, label: "Low" },
+                ] as const
+              ).map((s) => {
+                const active = archiveSeverity === s.id;
+                const color = s.id === "all" ? "#EB5928" : SEV_COLOR[s.id];
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setArchiveSeverity(s.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "5px 12px",
+                      borderRadius: 999,
+                      border: `1px solid ${active ? `${color}55` : "var(--color-border)"}`,
+                      backgroundColor: active ? `${color}12` : "var(--color-bg-card)",
+                      color: active ? color : "var(--color-text-muted)",
+                      fontSize: 12,
+                      fontWeight: active ? 800 : 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: s.id === "all" ? "#6B7280" : color, flexShrink: 0 }} />
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Rows */}
+            <div style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: 10, overflow: "hidden" }}>
+              <AnimatePresence>
+                {archiveFiltered.length === 0 ? (
+                  <div style={{ padding: "32px 0", textAlign: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+                    No resolved incidents found in this range
+                  </div>
+                ) : (
+                  archiveFiltered.map((incident, i) => (
+                    <ArchiveIncidentRow
+                      key={incident.id}
+                      incident={incident}
+                      detail={incidentDetails[incident.id]}
+                      onClick={() => handleSelect(incident.id)}
+                      index={i}
+                    />
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

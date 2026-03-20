@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageSquare, ArrowRight, Network } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
+import BackButton from "../components/shared/BackButton";
 import IncidentHeader from "../components/investigation/IncidentHeader";
 import RootCausePanel from "../components/investigation/RootCausePanel";
 import SummaryPanel from "../components/investigation/SummaryPanel";
@@ -39,13 +40,18 @@ export default function InvestigationPage() {
   };
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+    <div style={{ flex: 1, overflowY: "auto", padding: "var(--page-pad)" }}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
         style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}
       >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <BackButton />
+          <div style={{ flex: 1 }} />
+        </div>
+
         {/* Incident selector */}
         <IncidentHeader incident={incidentData} />
 
@@ -56,13 +62,13 @@ export default function InvestigationPage() {
         <RootCausePanel rootCauses={incidentData.rootCauses} />
 
         {/* Timeline + Blast radius */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16 }}>
           <Timeline events={incidentData.timeline} />
           <BlastRadiusPanel items={incidentData.blastRadius} />
         </div>
 
         {/* Historical refs + Topology shortcut */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "stretch" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16, alignItems: "stretch" }}>
           <HistoricalRefPanel refs={incidentData.historicalRefs} />
 
           {/* Topology shortcut card */}
