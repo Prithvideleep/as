@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { Crosshair, ChevronDown } from "lucide-react";
+import { Crosshair, ChevronDown, FlaskConical } from "lucide-react";
 import { useState } from "react";
 import type { RootCause } from "../../data/mockData";
 
 const RANK_LABELS = ["Primary Hypothesis", "Secondary Hypothesis", "Alternative Hypothesis"];
-const RANK_BORDER = ["rgba(239,68,68,0.35)", "rgba(249,115,22,0.25)", "rgba(107,114,128,0.2)"];
+const RANK_BORDER = ["rgba(239,68,68,0.25)", "rgba(249,115,22,0.18)", "rgba(107,114,128,0.15)"];
 const RANK_BAR    = ["#EF4444", "#F97316", "#6B7280"];
 const RANK_TEXT   = ["#EF4444", "#F97316", "#6B7280"];
 
@@ -21,19 +21,38 @@ export default function RootCausePanel({ rootCauses }: { rootCauses: RootCause[]
       style={{
         backgroundColor: "var(--color-bg-card)",
         borderRadius: 16,
-        padding: "20px 24px",
-        border: "1px solid rgba(239,68,68,0.28)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 0 20px rgba(239,68,68,0.06)",
+        padding: "18px 20px",
+        border: "1px solid var(--color-border)",
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <Crosshair style={{ width: 17, height: 17, color: "#EF4444", flexShrink: 0 }} />
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text-primary)", flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <Crosshair style={{ width: 15, height: 15, color: "var(--color-text-muted)", flexShrink: 0 }} />
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)", flex: 1 }}>
           Root Cause Analysis
         </h2>
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
           {rootCauses.length} {rootCauses.length === 1 ? "hypothesis" : "hypotheses"}
+        </span>
+      </div>
+
+      {/* Indicative placeholder notice */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 7,
+          padding: "8px 10px",
+          borderRadius: 8,
+          backgroundColor: "rgba(245,158,11,0.07)",
+          border: "1px solid rgba(245,158,11,0.22)",
+          marginBottom: 14,
+        }}
+      >
+        <FlaskConical style={{ width: 12, height: 12, color: "#F59E0B", flexShrink: 0, marginTop: 1 }} />
+        <span style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
+          <strong style={{ color: "#F59E0B" }}>Indicative only</strong> — full root cause analysis
+          requires enriched data pipeline integration (Phase 2).
         </span>
       </div>
 

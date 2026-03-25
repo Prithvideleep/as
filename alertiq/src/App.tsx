@@ -5,6 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import InvestigationPage from "./pages/InvestigationPage";
 import TopologyPage from "./pages/TopologyPage";
 import ChatPage from "./pages/ChatPage";
+import HistoryPage from "./pages/HistoryPage";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
             <Route path="/investigation" element={<InvestigationPage />} />
             <Route path="/topology" element={<TopologyPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/history" element={<HistoryPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

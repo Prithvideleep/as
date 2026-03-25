@@ -1027,6 +1027,80 @@ export const suggestedQueries: Record<string, string[]> = {
   ],
 };
 
+// ─── Alert level snapshot (derived, updated every 15 min in production) ───
+
+export interface AlertLevelSnapshot {
+  lastUpdated: string;
+  intervalMinutes: number;
+  levels: {
+    critical: number;
+    warning: number;
+    minor: number;
+    clear: number;
+    error: number;
+  };
+}
+
+export const alertLevelSnapshot: AlertLevelSnapshot = {
+  lastUpdated: new Date().toISOString(),
+  intervalMinutes: 15,
+  levels: {
+    critical: incidents
+      .filter((i) => i.severity === "critical" && i.status !== "resolved")
+      .reduce((s, i) => s + i.alertCount, 0),
+    warning: incidents
+      .filter((i) => i.severity === "high" && i.status !== "resolved")
+      .reduce((s, i) => s + i.alertCount, 0),
+    minor: incidents
+      .filter((i) => i.severity === "medium" && i.status !== "resolved")
+      .reduce((s, i) => s + i.alertCount, 0),
+    clear: incidents.filter((i) => i.status === "resolved").length,
+    error: 0,
+  },
+};
+
+// ─── Correlation clusters (top 5 non-resolved incidents as AI-grouped clusters) ───
+
+export interface CorrelationCluster {
+  incidentId: string;
+  incidentName: string;
+  severity: Severity;
+  relatedAlerts: { title: string; source: string; timestamp: string }[];
+  impactedL1: BlastRadiusItem[];
+  impactedL2Placeholder: string;
+  /** When present (archive mode), shows a Resolution section instead of the L2 placeholder */
+  resolutionSummary?: string;
+}
+
+const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+export const correlationClusters: CorrelationCluster[] = incidents
+  .filter((i) => i.status !== "resolved")
+  .sort((a, b) => {
+    const sv = SEV_ORDER[a.severity] - SEV_ORDER[b.severity];
+    return sv !== 0 ? sv : b.alertCount - a.alertCount;
+  })
+  .slice(0, 5)
+  .map((inc) => {
+    const detail = incidentDetails[inc.id];
+    return {
+      incidentId: inc.id,
+      incidentName: inc.name,
+      severity: inc.severity,
+      relatedAlerts: detail
+        ? detail.timeline
+            .filter((t) => t.type === "alert" || t.type === "anomaly")
+            .slice(0, 4)
+            .map((t) => ({ title: t.title, source: t.source, timestamp: t.timestamp }))
+        : [],
+      impactedL1: detail
+        ? detail.blastRadius.filter((b) => b.severity === "critical" || b.severity === "high")
+        : [],
+      impactedL2Placeholder:
+        "Downstream dependency mapping requires enriched data pipeline (Phase 2).",
+    };
+  });
+
 // ─── Dashboard metrics ───
 
 export const dashboardMetrics = {

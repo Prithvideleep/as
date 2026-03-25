@@ -1,0 +1,434 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, ChevronRight, ChevronDown, Server, AlertOctagon, X } from "lucide-react";
+import type { Incident, IncidentDetail, BlastRadiusItem } from "../../data/mockData";
+
+const SEV_COLOR: Record<string, string> = {
+  critical: "#EF4444",
+  high:     "#F97316",
+  medium:   "#F59E0B",
+  low:      "#22C55E",
+};
+
+const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+const SEV_LABEL: Record<string, string>  = { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
+
+interface ServiceEntry {
+  service:         string;
+  topSeverity:     BlastRadiusItem["severity"];
+  impact:          string;
+  incidentCount:   number;
+  worstIncidentId: string;
+  /** All incidents (sorted by severity) that reference this service */
+  relatedIncidents: { id: string; name: string; severity: string; alertCount: number; timestamp: string; impact: string }[];
+}
+
+function buildImpactedServices(
+  activeIncidents: Incident[],
+  details: Record<string, IncidentDetail>
+): ServiceEntry[] {
+  const map = new Map<string, ServiceEntry>();
+
+  for (const inc of activeIncidents) {
+    const detail = details[inc.id];
+    if (!detail) continue;
+    for (const br of detail.blastRadius) {
+      const existing = map.get(br.service);
+      const ref = { id: inc.id, name: inc.name, severity: inc.severity, alertCount: inc.alertCount, timestamp: inc.timestamp, impact: br.impact };
+      if (!existing) {
+        map.set(br.service, {
+          service: br.service,
+          topSeverity: br.severity,
+          impact: br.impact,
+          incidentCount: 1,
+          worstIncidentId: inc.id,
+          relatedIncidents: [ref],
+        });
+      } else {
+        if (SEV_ORDER[br.severity] < SEV_ORDER[existing.topSeverity]) {
+          existing.topSeverity = br.severity;
+          existing.impact = br.impact;
+          existing.worstIncidentId = inc.id;
+        }
+        existing.incidentCount++;
+        existing.relatedIncidents.push(ref);
+      }
+    }
+  }
+
+  // Sort related incidents inside each service entry by severity
+  for (const entry of map.values()) {
+    entry.relatedIncidents.sort((a, b) => {
+      const sv = SEV_ORDER[a.severity] - SEV_ORDER[b.severity];
+      return sv !== 0 ? sv : b.alertCount - a.alertCount;
+    });
+  }
+
+  return [...map.values()].sort((a, b) => {
+    const sv = SEV_ORDER[a.topSeverity] - SEV_ORDER[b.topSeverity];
+    return sv !== 0 ? sv : b.incidentCount - a.incidentCount;
+  });
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+
+function minutesAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diff <= 0) return "just now";
+  if (diff === 1) return "1 min ago";
+  return `${diff} min ago`;
+}
+
+interface Props {
+  incidents:       Incident[];
+  incidentDetails: Record<string, IncidentDetail>;
+  onSelect:        (id: string) => void;
+  lastUpdated:     string;
+}
+
+export default function IncidentTile({ incidents, incidentDetails, onSelect, lastUpdated }: Props) {
+  const [expandedService, setExpandedService] = useState<string | null>(null);
+
+  const active      = incidents.filter((i) => i.status !== "resolved");
+  const services    = buildImpactedServices(active, incidentDetails);
+  const topServices = services.slice(0, 7);
+
+  const criticalCount = services.filter((s) => s.topSeverity === "critical").length;
+  const highCount     = services.filter((s) => s.topSeverity === "high").length;
+
+  function toggleService(name: string) {
+    setExpandedService((prev) => (prev === name ? null : name));
+  }
+
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--color-bg-card)",
+        borderRadius: 14,
+        border: "1px solid var(--color-border)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        flex: 1,
+        minWidth: 0,
+        width: "100%",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid var(--color-border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <Server style={{ width: 13, height: 13, color: "var(--color-accent)" }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
+            Impacted Services
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {expandedService && (
+            <button
+              onClick={() => setExpandedService(null)}
+              title="Collapse"
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 2, color: "var(--color-text-muted)" }}
+            >
+              <X style={{ width: 11, height: 11 }} />
+            </button>
+          )}
+          <span style={{ fontSize: 10, color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+            <Clock style={{ width: 10, height: 10 }} />
+            Updated {minutesAgo(lastUpdated)}
+          </span>
+        </div>
+      </div>
+
+      {/* Summary chips */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          padding: "8px 14px",
+          borderBottom: "1px solid var(--color-border)",
+          flexWrap: "wrap",
+        }}
+      >
+        {(
+          [
+            { label: "Critical", count: criticalCount, color: "#EF4444" },
+            { label: "High",     count: highCount,     color: "#F97316" },
+            { label: "Other",    count: services.length - criticalCount - highCount, color: "#6B7280" },
+          ] as const
+        ).map(({ label, count, color }) => (
+          <span
+            key={label}
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: count > 0 ? color : "var(--color-text-muted)",
+              backgroundColor: count > 0 ? `${color}12` : "transparent",
+              border: `1px solid ${count > 0 ? `${color}30` : "var(--color-border)"}`,
+              padding: "2px 8px",
+              borderRadius: 999,
+            }}
+          >
+            {count} {label}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--color-text-muted)" }}>
+          {services.length} total
+        </span>
+      </div>
+
+      {/* Service rows */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {topServices.length === 0 ? (
+          <div style={{ padding: "18px 16px", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center" }}>
+            No impacted services detected
+          </div>
+        ) : (
+          topServices.map((svc, i) => {
+            const color     = SEV_COLOR[svc.topSeverity] ?? "#6B7280";
+            const isOpen    = expandedService === svc.service;
+            const isLast    = i === topServices.length - 1;
+
+            return (
+              <div
+                key={svc.service}
+                style={{
+                  borderBottom: isLast && !isOpen ? "none" : "1px solid var(--color-border)",
+                }}
+              >
+                {/* Service row header */}
+                <button
+                  onClick={() => toggleService(svc.service)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    background: isOpen ? `${color}08` : "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isOpen) (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${color}06`;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isOpen) (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                  }}
+                >
+                  {/* Severity dot */}
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+
+                  {/* Service name */}
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: isOpen ? color : "var(--color-text-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {svc.service}
+                  </span>
+
+                  {/* Severity badge */}
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      color,
+                      backgroundColor: `${color}12`,
+                      padding: "2px 6px",
+                      borderRadius: 999,
+                      flexShrink: 0,
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {SEV_LABEL[svc.topSeverity]}
+                  </span>
+
+                  {/* Incident count badge */}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: "var(--color-text-muted)",
+                      flexShrink: 0,
+                      minWidth: 16,
+                      textAlign: "right",
+                    }}
+                  >
+                    ×{svc.incidentCount}
+                  </span>
+
+                  {/* Expand/collapse chevron */}
+                  {isOpen
+                    ? <ChevronDown style={{ width: 11, height: 11, color, flexShrink: 0 }} />
+                    : <ChevronRight style={{ width: 11, height: 11, color: "var(--color-text-muted)", flexShrink: 0 }} />
+                  }
+                </button>
+
+                {/* Expanded: all related incidents */}
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: `${color}05`,
+                          borderTop: `1px solid ${color}20`,
+                          borderBottom: isLast ? "none" : `1px solid var(--color-border)`,
+                        }}
+                      >
+                        {/* Sub-header */}
+                        <div style={{ padding: "6px 14px 4px 28px", display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                            {svc.relatedIncidents.length} incident{svc.relatedIncidents.length === 1 ? "" : "s"} affecting this service
+                          </span>
+                        </div>
+
+                        {svc.relatedIncidents.map((rel, ri) => {
+                          const rc = SEV_COLOR[rel.severity] ?? "#6B7280";
+                          return (
+                            <button
+                              key={rel.id}
+                              onClick={() => onSelect(rel.id)}
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: 8,
+                                padding: "7px 14px 7px 28px",
+                                background: "none",
+                                border: "none",
+                                borderTop: ri > 0 ? `1px dashed ${color}18` : "none",
+                                cursor: "pointer",
+                                textAlign: "left",
+                                transition: "background 0.1s",
+                              }}
+                              onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${rc}10`;
+                              }}
+                              onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                              }}
+                            >
+                              {/* Severity stripe */}
+                              <span
+                                style={{
+                                  width: 3,
+                                  alignSelf: "stretch",
+                                  borderRadius: 2,
+                                  backgroundColor: rc,
+                                  flexShrink: 0,
+                                  minHeight: 14,
+                                }}
+                              />
+
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                {/* Incident name */}
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: "var(--color-text-primary)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {rel.name}
+                                </div>
+                                {/* Impact note */}
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: "var(--color-text-muted)",
+                                    marginTop: 1,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {rel.impact}
+                                </div>
+                              </div>
+
+                              {/* Meta */}
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                    color: rc,
+                                    backgroundColor: `${rc}12`,
+                                    padding: "1px 5px",
+                                    borderRadius: 999,
+                                    letterSpacing: "0.04em",
+                                  }}
+                                >
+                                  {SEV_LABEL[rel.severity] ?? rel.severity}
+                                </span>
+                                <span style={{ fontSize: 9, color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: 2 }}>
+                                  <AlertOctagon style={{ width: 8, height: 8 }} />
+                                  {rel.alertCount} · {formatTime(rel.timestamp)}
+                                </span>
+                              </div>
+
+                              <ChevronRight style={{ width: 10, height: 10, color: "var(--color-text-muted)", flexShrink: 0, alignSelf: "center" }} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          borderTop: "1px solid var(--color-border)",
+          padding: "8px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+          Across {active.length} active incident{active.length === 1 ? "" : "s"}
+        </span>
+        {services.length > 7 && (
+          <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
+            +{services.length - 7} more
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
