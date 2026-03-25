@@ -90,12 +90,16 @@ interface Props {
   lastUpdated:     string;
 }
 
+const SVC_PAGE_SIZE = 5;
+
 export default function IncidentTile({ incidents, incidentDetails, onSelect, lastUpdated }: Props) {
   const [expandedService, setExpandedService] = useState<string | null>(null);
+  const [svcPage, setSvcPage] = useState(1);
 
   const active      = incidents.filter((i) => i.status !== "resolved");
   const services    = buildImpactedServices(active, incidentDetails);
-  const topServices = services.slice(0, 7);
+  const totalSvcPages = Math.max(1, Math.ceil(services.length / SVC_PAGE_SIZE));
+  const pageServices  = services.slice((svcPage - 1) * SVC_PAGE_SIZE, svcPage * SVC_PAGE_SIZE);
 
   const criticalCount = services.filter((s) => s.topSeverity === "critical").length;
   const highCount     = services.filter((s) => s.topSeverity === "high").length;
@@ -121,7 +125,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
       {/* Header */}
       <div
         style={{
-          padding: "14px 16px 10px",
+          padding: "18px 20px 10px",
           borderBottom: "1px solid var(--color-border)",
           display: "flex",
           alignItems: "center",
@@ -157,7 +161,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         style={{
           display: "flex",
           gap: 8,
-          padding: "8px 14px",
+          padding: "8px 20px",
           borderBottom: "1px solid var(--color-border)",
           flexWrap: "wrap",
         }}
@@ -191,15 +195,15 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
 
       {/* Service rows */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {topServices.length === 0 ? (
+        {pageServices.length === 0 ? (
           <div style={{ padding: "18px 16px", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center" }}>
             No impacted services detected
           </div>
         ) : (
-          topServices.map((svc, i) => {
+          pageServices.map((svc, i) => {
             const color     = SEV_COLOR[svc.topSeverity] ?? "#6B7280";
             const isOpen    = expandedService === svc.service;
-            const isLast    = i === topServices.length - 1;
+            const isLast    = i === pageServices.length - 1;
 
             return (
               <div
@@ -216,7 +220,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 14px",
+                    padding: "9px 20px",
                     background: isOpen ? `${color}08` : "none",
                     border: "none",
                     cursor: "pointer",
@@ -277,11 +281,17 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
                     ×{svc.incidentCount}
                   </span>
 
-                  {/* Expand/collapse chevron */}
-                  {isOpen
-                    ? <ChevronDown style={{ width: 11, height: 11, color, flexShrink: 0 }} />
-                    : <ChevronRight style={{ width: 11, height: 11, color: "var(--color-text-muted)", flexShrink: 0 }} />
-                  }
+                  {/* Expand/collapse chevron — rotates like AlertDetailsPanel */}
+                  <ChevronDown
+                    style={{
+                      width: 11,
+                      height: 11,
+                      color: isOpen ? color : "var(--color-text-muted)",
+                      flexShrink: 0,
+                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s",
+                    }}
+                  />
                 </button>
 
                 {/* Expanded: all related incidents */}
@@ -302,7 +312,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
                         }}
                       >
                         {/* Sub-header */}
-                        <div style={{ padding: "6px 14px 4px 28px", display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ padding: "6px 20px 4px 34px", display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: "0.04em", textTransform: "uppercase" }}>
                             {svc.relatedIncidents.length} incident{svc.relatedIncidents.length === 1 ? "" : "s"} affecting this service
                           </span>
@@ -319,7 +329,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
                                 display: "flex",
                                 alignItems: "flex-start",
                                 gap: 8,
-                                padding: "7px 14px 7px 28px",
+                                padding: "7px 20px 7px 34px",
                                 background: "none",
                                 border: "none",
                                 borderTop: ri > 0 ? `1px dashed ${color}18` : "none",
@@ -410,23 +420,46 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer — pagination */}
       <div
         style={{
           borderTop: "1px solid var(--color-border)",
-          padding: "8px 14px",
+          padding: "7px 14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 8,
         }}
       >
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
           Across {active.length} active incident{active.length === 1 ? "" : "s"}
         </span>
-        {services.length > 7 && (
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
-            +{services.length - 7} more
-          </span>
+        {totalSvcPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <button
+              onClick={() => { setSvcPage((p) => Math.max(1, p - 1)); setExpandedService(null); }}
+              disabled={svcPage === 1}
+              style={{
+                padding: "2px 8px", borderRadius: 6, border: "1px solid var(--color-border)",
+                background: "none", cursor: svcPage === 1 ? "not-allowed" : "pointer",
+                color: svcPage === 1 ? "var(--color-text-muted)" : "var(--color-text-secondary)",
+                fontSize: 11, fontWeight: 700, opacity: svcPage === 1 ? 0.45 : 1,
+              }}
+            >‹</button>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", minWidth: 44, textAlign: "center" }}>
+              {svcPage} / {totalSvcPages}
+            </span>
+            <button
+              onClick={() => { setSvcPage((p) => Math.min(totalSvcPages, p + 1)); setExpandedService(null); }}
+              disabled={svcPage === totalSvcPages}
+              style={{
+                padding: "2px 8px", borderRadius: 6, border: "1px solid var(--color-border)",
+                background: "none", cursor: svcPage === totalSvcPages ? "not-allowed" : "pointer",
+                color: svcPage === totalSvcPages ? "var(--color-text-muted)" : "var(--color-text-secondary)",
+                fontSize: 11, fontWeight: 700, opacity: svcPage === totalSvcPages ? 0.45 : 1,
+              }}
+            >›</button>
+          </div>
         )}
       </div>
     </div>

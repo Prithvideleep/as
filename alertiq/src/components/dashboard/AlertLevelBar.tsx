@@ -31,8 +31,6 @@ interface Props {
   windowCount?: number;
 }
 
-const MAX_BAR_PX = 72;
-
 export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, windowCount }: Props) {
   const max = Math.max(...Object.values(snapshot.levels), 1);
 
@@ -46,6 +44,8 @@ export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, window
         flex: 1,
         minWidth: 0,
         width: "100%",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* Header */}
@@ -79,71 +79,68 @@ export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, window
         }
       </p>
 
-      {/* Column bar chart — proportional pixel heights */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: MAX_BAR_PX + 36 }}>
+      {/* Horizontal bar rows — one per level, stacked vertically */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, justifyContent: "space-between" }}>
         {LEVELS.map((lv, idx) => {
           const val = snapshot.levels[lv.key];
-          // Strictly proportional: max value gets MAX_BAR_PX, others scale linearly.
-          // Zero gets a 3px stub so the slot is still visible; non-zero minimum 4px.
-          const targetPx = val === 0
-            ? 3
-            : Math.max(Math.round((val / max) * MAX_BAR_PX), 4);
+          const targetPct = val === 0 ? 0 : Math.max((val / max) * 100, 3);
 
           return (
-            <div
-              key={lv.key}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                gap: 4,
-                height: "100%",
-              }}
-            >
-              {/* Count label — only show if > 0 */}
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: val === 0 ? "var(--color-text-muted)" : lv.color,
-                  lineHeight: 1,
-                  marginBottom: 2,
-                  minHeight: 14,
-                  display: "flex",
-                  alignItems: "flex-end",
-                }}
-              >
-                {val}
-              </span>
-
-              {/* Bar column */}
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: targetPx }}
-                transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
-                style={{
-                  width: "100%",
-                  borderRadius: val === 0 ? 3 : "5px 5px 2px 2px",
-                  backgroundColor: lv.color,
-                  opacity: val === 0 ? 0.18 : 1,
-                  flexShrink: 0,
-                }}
-              />
-
+            <div key={lv.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {/* Level label */}
               <span
                 style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: val === 0 ? "var(--color-text-muted)" : "var(--color-text-secondary)",
-                  textAlign: "center",
-                  lineHeight: 1.2,
-                  marginTop: 4,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: val === 0 ? "var(--color-text-muted)" : lv.color,
+                  width: 52,
+                  flexShrink: 0,
+                  lineHeight: 1,
                 }}
               >
                 {lv.label}
+              </span>
+
+              {/* Track */}
+              <div
+                style={{
+                  flex: 1,
+                  height: 10,
+                  borderRadius: 6,
+                  backgroundColor: "var(--color-border)",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${targetPct}%` }}
+                  transition={{ duration: 0.5, delay: idx * 0.06, ease: "easeOut" }}
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    height: "100%",
+                    borderRadius: 6,
+                    backgroundColor: lv.color,
+                    opacity: val === 0 ? 0.18 : 1,
+                  }}
+                />
+              </div>
+
+              {/* Count */}
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: val === 0 ? "var(--color-text-muted)" : lv.color,
+                  width: 32,
+                  textAlign: "right",
+                  flexShrink: 0,
+                  lineHeight: 1,
+                }}
+              >
+                {val}
               </span>
             </div>
           );

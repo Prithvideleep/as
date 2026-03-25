@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Layers, AlertOctagon, Server, Search, X, RefreshCw, ChevronRight } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -32,9 +32,10 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { selectedIncidentId, setSelectedIncidentId } = useAppContext();
 
-  // Live — search-browse (secondary section, minimal)
+  // Live — search-browse
   const [browseQuery, setBrowseQuery] = useState("");
-  const [browseOpen, setBrowseOpen]   = useState(false);
+  const [browsePage, setBrowsePage]   = useState(1);
+  const BROWSE_PAGE_SIZE = 5;
 
   // Snapshot refresh (mock: just bumps lastUpdated)
   const [snapshot, setSnapshot] = useState<AlertLevelSnapshot>(initialSnapshot);
@@ -122,171 +123,162 @@ export default function DashboardPage() {
           transition={{ duration: 0.25 }}
           style={{ display: "flex", flexDirection: "column", gap: 20 }}
         >
-            {/* ── Row 1: Alert Level + Alert Details + Incident Tile ── */}
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
-              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-                <AlertLevelBar snapshot={snapshot} onRefresh={handleRefresh} />
+            {/* ── Row 1: Left (Alert Level + Alert Details) | Right (Impacted Services) ── */}
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+
+              {/* Left column — alert severity overview */}
+              <div style={{ flex: "1 1 260px", minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-text-muted)", paddingLeft: 2 }}>
+                  Alert Overview
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <AlertLevelBar snapshot={snapshot} onRefresh={handleRefresh} />
+                  <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
+                </div>
               </div>
-              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
-              </div>
-              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+
+              {/* Right column — service impact + search */}
+              <div style={{ flex: "1.4 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-text-muted)", paddingLeft: 2 }}>
+                  Service Impact
+                </span>
                 <IncidentTile
                   incidents={incidents}
                   incidentDetails={incidentDetails}
                   onSelect={handleSelect}
                   lastUpdated={snapshot.lastUpdated}
                 />
-              </div>
-            </div>
 
-            {/* ── Row 2: Correlation Tile ─────────────────────── */}
-            <CorrelationTile clusters={correlationClusters} onSelect={handleSelect} />
+                {/* Find Incident — always-visible card */}
+                {(() => {
+                  const totalBrowsePages = Math.max(1, Math.ceil(browseResults.length / BROWSE_PAGE_SIZE));
+                  const pageRows = browseResults.slice((browsePage - 1) * BROWSE_PAGE_SIZE, browsePage * BROWSE_PAGE_SIZE);
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: "var(--color-bg-card)",
+                        borderRadius: 14,
+                        border: "1px solid var(--color-border)",
+                        overflow: "hidden",
+                        marginTop: 8,
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      {/* Card header */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px 10px", borderBottom: "1px solid var(--color-border)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                          <Search style={{ width: 13, height: 13, color: "var(--color-accent)", flexShrink: 0 }} />
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>Find Incident</span>
+                        </div>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                          {incidents.filter((i) => i.status !== "resolved").length} active
+                        </span>
+                      </div>
 
-            {/* ── Row 3: Browse / Find Incident ──────────────── */}
-            <div
-              style={{
-                backgroundColor: "var(--color-bg-card)",
-                borderRadius: 14,
-                border: "1px solid var(--color-border)",
-                overflow: "hidden",
-              }}
-            >
-              {/* Browse header */}
-              <button
-                onClick={() => setBrowseOpen((v) => !v)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "14px 18px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
-                <Search style={{ width: 14, height: 14, color: "var(--color-text-muted)", flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
-                  Browse / Find Incident
-                </span>
-                <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                  {incidents.filter((i) => i.status !== "resolved").length} active
-                </span>
-                <ChevronRight
-                  style={{
-                    width: 14,
-                    height: 14,
-                    color: "var(--color-text-muted)",
-                    transform: browseOpen ? "rotate(90deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s",
-                    flexShrink: 0,
-                  }}
-                />
-              </button>
-
-              <AnimatePresence initial={false}>
-                {browseOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22 }}
-                    style={{ overflow: "hidden" }}
-                  >
-                    <div style={{ padding: "0 18px 16px" }}>
                       {/* Search input */}
-                      <div style={{ position: "relative", marginBottom: 12 }}>
-                        <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "var(--color-text-muted)" }} />
-                        <input
-                          type="text"
-                          value={browseQuery}
-                          onChange={(e) => setBrowseQuery(e.target.value)}
-                          placeholder="Search by service name, incident ID…"
-                          style={{
-                            width: "100%",
-                            paddingLeft: 30,
-                            paddingRight: browseQuery ? 30 : 12,
-                            paddingTop: 8,
-                            paddingBottom: 8,
-                            borderRadius: 8,
-                            border: "1px solid var(--color-border)",
-                            backgroundColor: "var(--color-bg-primary)",
-                            fontSize: 12,
-                            color: "var(--color-text-primary)",
-                            outline: "none",
-                          }}
-                        />
-                        {browseQuery && (
-                          <button
-                            onClick={() => setBrowseQuery("")}
-                            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", display: "flex", padding: 0 }}
-                          >
-                            <X style={{ width: 12, height: 12 }} />
-                          </button>
-                        )}
+                      <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid var(--color-border)" }}>
+                        <div style={{ position: "relative" }}>
+                          <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 12, height: 12, color: "var(--color-text-muted)", pointerEvents: "none" }} />
+                          <input
+                            type="text"
+                            value={browseQuery}
+                            onChange={(e) => { setBrowseQuery(e.target.value); setBrowsePage(1); }}
+                            placeholder="Search by name, ID or service…"
+                            style={{
+                              width: "100%",
+                              paddingLeft: 30,
+                              paddingRight: browseQuery ? 30 : 12,
+                              paddingTop: 7,
+                              paddingBottom: 7,
+                              borderRadius: 8,
+                              border: `1px solid ${browseQuery ? "rgba(235,89,40,0.35)" : "var(--color-border)"}`,
+                              backgroundColor: "var(--color-bg-primary)",
+                              fontSize: 12,
+                              color: "var(--color-text-primary)",
+                              outline: "none",
+                              transition: "border-color 0.15s",
+                            }}
+                          />
+                          {browseQuery && (
+                            <button
+                              onClick={() => { setBrowseQuery(""); setBrowsePage(1); }}
+                              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", display: "flex", padding: 0 }}
+                            >
+                              <X style={{ width: 12, height: 12 }} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Results list */}
-                      <div style={{ borderRadius: 8, border: "1px solid var(--color-border)", overflow: "hidden" }}>
+                      <div style={{ flex: 1 }}>
                         {browseResults.length === 0 ? (
-                          <div style={{ padding: "20px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
-                            No active incidents match your search
+                          <div style={{ padding: "16px", textAlign: "center", fontSize: 12, color: "var(--color-text-muted)" }}>
+                            {browseQuery ? `No incidents match "${browseQuery}"` : "No active incidents"}
                           </div>
                         ) : (
-                          browseResults.slice(0, 8).map((inc, i) => {
+                          pageRows.map((inc, i) => {
                             const dot = SEV_COLOR[inc.severity] ?? "#6B7280";
                             return (
                               <button
                                 key={inc.id}
                                 onClick={() => handleSelect(inc.id)}
                                 style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 10,
-                                  width: "100%",
-                                  padding: "9px 14px",
+                                  display: "flex", alignItems: "center", gap: 10, width: "100%",
+                                  padding: "9px 16px",
                                   background: selectedIncidentId === inc.id ? `${dot}08` : "transparent",
                                   border: "none",
-                                  borderBottom: i < browseResults.length - 1 ? "1px solid var(--color-border)" : "none",
-                                  cursor: "pointer",
-                                  textAlign: "left",
-                                  transition: "background 0.1s",
+                                  borderBottom: i < pageRows.length - 1 ? "1px solid var(--color-border)" : "none",
+                                  cursor: "pointer", textAlign: "left", transition: "background 0.1s",
                                 }}
-                                onMouseEnter={(e) => {
-                                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                                    "var(--color-hover-bg)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                                    selectedIncidentId === inc.id ? `${dot}08` : "transparent";
-                                }}
+                                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--color-hover-bg)"; }}
+                                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = selectedIncidentId === inc.id ? `${dot}08` : "transparent"; }}
                               >
-                                <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: dot, flexShrink: 0 }} />
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: dot, flexShrink: 0 }} />
                                 <span style={{ fontSize: 10, fontWeight: 800, color: "var(--color-text-muted)", flexShrink: 0, minWidth: 50 }}>{inc.id}</span>
-                                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {inc.name}
-                                </span>
-                                <span style={{ fontSize: 10, color: dot, fontWeight: 700, flexShrink: 0 }}>
-                                  {inc.severity.toUpperCase()}
-                                </span>
-                                <ChevronRight style={{ width: 12, height: 12, color: "var(--color-text-muted)", flexShrink: 0 }} />
+                                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inc.name}</span>
+                                <span style={{ fontSize: 10, color: dot, fontWeight: 800, flexShrink: 0, letterSpacing: "0.03em" }}>{inc.severity.toUpperCase()}</span>
+                                <ChevronRight style={{ width: 11, height: 11, color: "var(--color-text-muted)", flexShrink: 0 }} />
                               </button>
                             );
                           })
                         )}
                       </div>
-                      {browseResults.length > 8 && (
-                        <p style={{ marginTop: 8, fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
-                          Showing 8 of {browseResults.length} — narrow search to find specific incidents
-                        </p>
-                      )}
+
+                      {/* Footer — result count + pagination */}
+                      <div style={{ borderTop: "1px solid var(--color-border)", padding: "7px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                          {browseResults.length} result{browseResults.length === 1 ? "" : "s"}
+                        </span>
+                        {totalBrowsePages > 1 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <button
+                              onClick={() => setBrowsePage((p) => Math.max(1, p - 1))}
+                              disabled={browsePage === 1}
+                              style={{ padding: "2px 8px", borderRadius: 6, border: "1px solid var(--color-border)", background: "none", cursor: browsePage === 1 ? "not-allowed" : "pointer", color: browsePage === 1 ? "var(--color-text-muted)" : "var(--color-text-secondary)", fontSize: 11, fontWeight: 700, opacity: browsePage === 1 ? 0.45 : 1 }}
+                            >‹</button>
+                            <span style={{ fontSize: 10, color: "var(--color-text-muted)", minWidth: 40, textAlign: "center" }}>
+                              {browsePage} / {totalBrowsePages}
+                            </span>
+                            <button
+                              onClick={() => setBrowsePage((p) => Math.min(totalBrowsePages, p + 1))}
+                              disabled={browsePage === totalBrowsePages}
+                              style={{ padding: "2px 8px", borderRadius: 6, border: "1px solid var(--color-border)", background: "none", cursor: browsePage === totalBrowsePages ? "not-allowed" : "pointer", color: browsePage === totalBrowsePages ? "var(--color-text-muted)" : "var(--color-text-secondary)", fontSize: 11, fontWeight: 700, opacity: browsePage === totalBrowsePages ? 0.45 : 1 }}
+                            >›</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  );
+                })()}
+              </div>
+
             </div>
+
+            {/* ── Row 2: Correlation Tile ─────────────────────── */}
+            <CorrelationTile clusters={correlationClusters} onSelect={handleSelect} />
+
           </motion.div>
 
       </div>

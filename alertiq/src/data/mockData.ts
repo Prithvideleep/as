@@ -1002,6 +1002,152 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "An upstream DNS provider infrastructure issue caused 200ms additional resolution latency. This was an external issue that resolved automatically after the provider applied a fix. Confidence: 65%.",
     },
   ],
+  "CL-006": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "Two compounding issues triggered this: (1) A Horizontal Pod Autoscaler configured against CPU utilisation aggressively scaled a memory-bound workload to 40 replicas. (2) The newly deployed data-processor v3.1 has a memory leak that doubles RSS every 15 minutes under load. Three worker nodes hit MemoryPressure simultaneously, causing OOMKill evictions that cascaded to 9 services. Confidence: 88% (HPA), 72% (memory leak).",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "9 services impacted. data-processor and api-server are critically affected. order-service and user-service have reduced capacity with intermittent 503s. notification-service shows delayed dispatch. search-service has paused index refresh but is still serving queries.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action", "recommendation"],
+      answer:
+        "Recommended actions:\n1. Roll back data-processor to v3.0 immediately to stop the memory leak\n2. Manually set HPA max replicas to 15 as an emergency cap\n3. Cordon the two most pressured nodes and reschedule pods\n4. Add memory-based HPA metric alongside CPU for this workload\n5. Monitor cluster memory for 20 minutes after rollback",
+    },
+    {
+      keywords: ["timeline", "sequence", "when"],
+      answer:
+        "Timeline:\n- 08:30 — data-processor v3.1 deployed via ArgoCD\n- 08:48 — HPA scaled from 5 to 40 replicas in 8 minutes\n- 09:02 — 3 worker nodes hit MemoryPressure taint\n- 09:06 — OOMKilled events on 12 pods, cascade begins",
+    },
+  ],
+  "CL-007": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "Redis maxmemory (4GB) was reached after session-service v1.9.2 inflated session object sizes from 2KB to 18KB per user — a 9x increase. When the cache filled, the allkeys-lru eviction policy began expelling hot session keys that were immediately re-requested, creating an eviction storm of 10,000 evictions/sec. Confidence: 82%.",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "4 services impacted. redis-primary is the root cause. session-service is experiencing cache misses on every lookup. api-gateway shows elevated latency on authenticated requests. user-dashboard loads are slower but not failing.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action"],
+      answer:
+        "Recommended actions:\n1. Increase Redis maxmemory to 8GB immediately via CONFIG SET\n2. Roll back session-service to v1.9.1 to reduce object payload size\n3. Review session-service v1.9.2 to strip unnecessary fields from session objects\n4. Consider migrating to Redis Cluster for horizontal scaling",
+    },
+  ],
+  "CL-008": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "A breaking schema change in order-producer v2.3.0 added required fields not present in the previous schema. Consumers on v2.2.x throw a deserialization exception on every message and restart, never committing offsets. The root issue is that schema registry compatibility was set to NONE instead of BACKWARD, allowing the breaking change to be published without validation. Lag is now 2.4 million messages. Confidence: 91%.",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "6 services impacted. order-consumer is in a continuous restart loop and processing zero messages. order-service has delayed state updates. inventory-service has queued stock reservations. notification-service has delayed order confirmation emails.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action"],
+      answer:
+        "Recommended actions:\n1. Roll back order-producer to v2.2.x to stop the incompatible message stream\n2. Set schema registry compatibility to BACKWARD to prevent future breaking changes\n3. Deploy a patched order-consumer that handles the new schema, then re-deploy producer v2.3.0\n4. Monitor consumer lag to confirm it is reducing after fix",
+    },
+    {
+      keywords: ["timeline", "sequence", "when"],
+      answer:
+        "Timeline:\n- 07:00 — order-producer v2.3.0 deployed with new required schema fields\n- 07:15 — order-consumer enters restart loop (deserialization exception)\n- 08:20 — Consumer lag exceeds 500K messages, growing at 80K/min",
+    },
+  ],
+  "CL-009": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "The cert-manager ACME account token expired. Auto-renewal was silently failing for 30 days with no alerting configured. The API gateway SSL certificate was 7 days from expiry when the alert finally fired. Confidence: 95%.",
+    },
+    {
+      keywords: ["fix", "resolve", "status", "resolved"],
+      answer:
+        "This incident has been resolved. The API gateway certificate was manually renewed. The cert-manager ACME token was rotated and verified. Expiry and renewal failure alerts were added so this cannot silently recur.",
+    },
+  ],
+  "CL-010": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "A deployment manifest update changed the readiness probe path from /health to /healthz, but the load balancer health check was not updated and still points to /health. The load balancer received 404s and removed 7 of 10 backend instances from rotation. Remaining 3 instances are at 340% normal load. Confidence: 96%.",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "11 services impacted. load-balancer and api-server are critically affected. user-dashboard is showing timeout errors for most users. order-service is experiencing order placement failures. payment-gateway is failing payment requests.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action"],
+      answer:
+        "Recommended actions:\n1. Update the load balancer health check path to /healthz immediately\n2. Verify instances pass the new health check and are re-added to rotation\n3. Monitor traffic distribution once all 10 instances are healthy\n4. Add LB health check path to deployment checklist to prevent recurrence",
+    },
+    {
+      keywords: ["timeline", "sequence", "when"],
+      answer:
+        "Timeline:\n- 08:50 — Deployment manifest updated with new /healthz probe path\n- 09:05 — LB marks 7/10 instances unhealthy (/health returning 404)\n- 09:20 — Alert fired: traffic concentrated on 3 instances at 340% load",
+    },
+  ],
+  "CL-011": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "Automated IAM role rotation applied a baseline policy template to the media-upload service role. The previous role had a custom inline policy granting S3 PutObject and GetObject permissions that was not included in the new rotation. All S3 operations are returning AccessDenied. Confidence: 89%.",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "3 services impacted. media-upload-service is the root cause — all file uploads and downloads are failing. user-dashboard profile photo uploads are blocked. content-pipeline asset publishing is blocked.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action"],
+      answer:
+        "Recommended actions:\n1. Attach the correct S3 bucket policy to the new IAM role for media-upload-service\n2. Verify S3 PutObject and GetObject succeed after policy update\n3. Update the IAM rotation automation to include a policy diff step\n4. Add a post-rotation smoke test for critical permissions",
+    },
+  ],
+  "CL-012": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "An Elasticsearch data node (es-data-node-03) reached 95% disk utilisation, triggering the flood-stage watermark. The write block was applied and the node was excluded from shard allocation, leaving 14 indices with unassigned replicas and the cluster in YELLOW state. Root cause: ILM policy was paused during maintenance 3 weeks ago and never re-enabled, allowing 340GB of old log indices to accumulate. Confidence: 93%.",
+    },
+    {
+      keywords: ["impact", "blast", "affected", "services"],
+      answer:
+        "5 services impacted. es-data-node-03 is the root cause. search-service queries are hitting the degraded cluster. log-aggregator has partially blocked write operations. analytics-pipeline index writes are failing. audit-logger has ingestion delays.",
+    },
+    {
+      keywords: ["fix", "resolve", "remediate", "action"],
+      answer:
+        "Recommended actions:\n1. Re-enable the ILM policy to start rolling and deleting old indices\n2. Manually delete the oldest non-essential log indices to free disk space below 80%\n3. Verify flood-stage watermark clears and write operations resume\n4. Monitor shard reallocation until cluster returns to GREEN state\n5. Add disk utilisation alert at 80% with 48h lead time",
+    },
+    {
+      keywords: ["timeline", "sequence", "when"],
+      answer:
+        "Timeline:\n- 3 weeks ago — ILM policy paused during maintenance, not re-enabled\n- 05:00 today — es-data-node-03 disk at 87%, growing at 2GB/hour\n- 06:45 — Flood-stage watermark reached, write block applied\n- 06:50 — Cluster state changed to YELLOW, replica shards unassigned on 14 indices",
+    },
+  ],
+  "CL-013": [
+    {
+      keywords: ["cause", "root", "why", "what happened"],
+      answer:
+        "A scheduled 90-day SendGrid API key rotation updated the key in secrets manager but notification-service reads credentials at startup only. The service continued using the old key, which was revoked, causing all SendGrid API calls to return 401 Unauthorized. Confidence: 97%.",
+    },
+    {
+      keywords: ["fix", "resolve", "status", "resolved"],
+      answer:
+        "This incident has been resolved. notification-service was restarted to pick up the new API key. All 847 queued emails were delivered successfully. Dynamic secret reloading has been implemented to prevent restarts being required for future credential rotations.",
+    },
+  ],
 };
 
 export const suggestedQueries: Record<string, string[]> = {
@@ -1013,17 +1159,62 @@ export const suggestedQueries: Record<string, string[]> = {
   ],
   "CL-002": [
     "What caused this issue?",
+    "Which services are affected?",
     "How do I fix this?",
   ],
   "CL-003": [
     "What caused this issue?",
+    "Which services are affected?",
   ],
   "CL-004": [
     "What caused this issue?",
+    "Which services are affected?",
     "How do I fix this?",
   ],
   "CL-005": [
     "What caused this issue?",
+  ],
+  "CL-006": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+    "Show me the timeline",
+  ],
+  "CL-007": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+  ],
+  "CL-008": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+    "Show me the timeline",
+  ],
+  "CL-009": [
+    "What caused this issue?",
+    "Has this been resolved?",
+  ],
+  "CL-010": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+    "Show me the timeline",
+  ],
+  "CL-011": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+  ],
+  "CL-012": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+    "Show me the timeline",
+  ],
+  "CL-013": [
+    "What caused this issue?",
+    "Has this been resolved?",
   ],
 };
 
@@ -1104,9 +1295,10 @@ export const correlationClusters: CorrelationCluster[] = incidents
 // ─── Dashboard metrics ───
 
 export const dashboardMetrics = {
-  activeClusters: incidents.filter((i) => i.status !== "resolved").length,
+  // Number of AI-grouped correlation clusters (not raw incident count)
+  activeClusters: correlationClusters.length,
   criticalAlerts: incidents
-    .filter((i) => i.severity === "critical")
+    .filter((i) => i.severity === "critical" && i.status !== "resolved")
     .reduce((sum, i) => sum + i.alertCount, 0),
   impactedServices: new Set(
     incidents
