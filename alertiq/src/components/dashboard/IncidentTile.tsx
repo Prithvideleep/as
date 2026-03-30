@@ -88,10 +88,8 @@ interface Props {
   incidentDetails: Record<string, IncidentDetail>;
   onSelect:        (id: string) => void;
   lastUpdated:     string;
-  /** Pinned header + summary, scrollable list + max height (dashboard sticky sidebar). */
+  /** Pinned header + summary; sidebar list flows with rail scroll. */
   layout?:         "default" | "sidebar";
-  /** Cap card height when layout is sidebar; keeps card within viewport below sticky offset. */
-  sidebarMaxHeight?: string;
   /** Row highlight when linked from correlation focus (sidebar). */
   highlightedService?: string | null;
   /** When expanding a service, parent can scroll/highlight matching cluster. */
@@ -106,7 +104,6 @@ export default function IncidentTile({
   onSelect,
   lastUpdated,
   layout = "default",
-  sidebarMaxHeight = "calc(100dvh - 64px)",
   highlightedService = null,
   onServiceActivate,
 }: Props) {

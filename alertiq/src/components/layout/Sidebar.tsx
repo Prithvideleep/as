@@ -1,9 +1,8 @@
-import { NavLink } from "react-router-dom";
+import { Link, useLocation, matchPath, type Location } from "react-router-dom";
 import {
   LayoutDashboard,
   Search,
   Network,
-  MessageSquare,
   ShieldAlert,
 } from "lucide-react";
 
@@ -16,11 +15,16 @@ const HOVER_BG     = "rgba(255,255,255,0.06)";
 const HOVER_COLOR  = "rgba(255,255,255,0.9)";
 
 const navItems = [
-  { to: "/",              icon: LayoutDashboard, label: "Dashboard"    },
-  { to: "/investigation", icon: Search,          label: "Investigation"},
-  { to: "/topology",      icon: Network,         label: "Topology"     },
-  { to: "/chat",          icon: MessageSquare,   label: "Triage"       },
-];
+  { to: "/",              icon: LayoutDashboard, label: "Dashboard"     },
+  { to: "/investigation", icon: Search,          label: "Investigation" },
+  { to: "/topology",      icon: Network,         label: "Topology"      },
+] as const;
+
+function navItemActive(location: Location, item: (typeof navItems)[number]): boolean {
+  const path = item.to.split("?")[0];
+  if (item.to === "/") return location.pathname === "/";
+  return !!matchPath({ path, end: true }, location.pathname);
+}
 
 export default function Sidebar({
   mobileOpen = false,
@@ -29,6 +33,8 @@ export default function Sidebar({
   mobileOpen?: boolean;
   onNavigate?: () => void;
 }) {
+  const location = useLocation();
+
   return (
     <aside
       className="sidebar"
@@ -76,45 +82,46 @@ export default function Sidebar({
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", padding: "4px 10px 8px" }}>
           Navigation
         </p>
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            style={({ isActive }) => ({
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 12px",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 500,
-              textDecoration: "none",
-              transition: "background-color 0.15s, color 0.15s",
-              color: isActive ? ACTIVE_COLOR : IDLE_COLOR,
-              backgroundColor: isActive ? ACTIVE_BG : "transparent",
-              borderLeft: isActive ? `3px solid ${ACTIVE_COLOR}` : "3px solid transparent",
-            })}
-            onClick={() => onNavigate?.()}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget;
-              if (!el.getAttribute("aria-current")) {
-                el.style.backgroundColor = HOVER_BG;
-                el.style.color = HOVER_COLOR;
-              }
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget;
-              if (!el.getAttribute("aria-current")) {
-                el.style.backgroundColor = "transparent";
-                el.style.color = IDLE_COLOR;
-              }
-            }}
-          >
-            <Icon style={{ width: 16, height: 16, flexShrink: 0 }} />
-            {label}
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const { to, icon: Icon, label } = item;
+          const active = navItemActive(location, item);
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "9px 12px",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                textDecoration: "none",
+                transition: "background-color 0.15s, color 0.15s",
+                color: active ? ACTIVE_COLOR : IDLE_COLOR,
+                backgroundColor: active ? ACTIVE_BG : "transparent",
+                borderLeft: active ? `3px solid ${ACTIVE_COLOR}` : "3px solid transparent",
+              }}
+              onClick={() => onNavigate?.()}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.backgroundColor = HOVER_BG;
+                  e.currentTarget.style.color = HOVER_COLOR;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget;
+                el.style.backgroundColor = active ? ACTIVE_BG : "transparent";
+                el.style.color = active ? ACTIVE_COLOR : IDLE_COLOR;
+              }}
+            >
+              <Icon style={{ width: 16, height: 16, flexShrink: 0 }} />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Footer */}

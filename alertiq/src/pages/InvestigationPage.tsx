@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageSquare, ArrowRight, Network } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
+import { useTriageDrawer } from "../context/TriageDrawerContext";
 import BackButton from "../components/shared/BackButton";
 import IncidentHeader from "../components/investigation/IncidentHeader";
 import RootCausePanel from "../components/investigation/RootCausePanel";
@@ -10,29 +11,13 @@ import Timeline from "../components/investigation/Timeline";
 import BlastRadiusPanel from "../components/investigation/BlastRadiusPanel";
 import HistoricalRefPanel from "../components/investigation/HistoricalRefPanel";
 
-function buildContextMessage(incident: ReturnType<typeof useAppContext>["incidentData"]): string {
-  const primary = incident.rootCauses[0];
-  const impacted = incident.blastRadius
-    .filter((b) => b.severity === "critical" || b.severity === "high")
-    .map((b) => b.service)
-    .join(", ");
-
-  return (
-    `I'm investigating incident ${incident.id}: "${incident.name}" (${incident.severity} severity, status: ${incident.status}).\n\n` +
-    `Primary root cause: ${primary.service} — ${primary.description} (${primary.confidence}% confidence)\n\n` +
-    `Critically/highly impacted services: ${impacted || "none identified yet"}.\n\n` +
-    `Summary: ${incident.summary}\n\n` +
-    `What are the recommended next steps to resolve this?`
-  );
-}
-
 export default function InvestigationPage() {
   const navigate = useNavigate();
-  const { incidentData, setPendingChatContext } = useAppContext();
+  const { incidentData } = useAppContext();
+  const { openTriage } = useTriageDrawer();
 
   const handleDiscussInTriage = () => {
-    setPendingChatContext(buildContextMessage(incidentData));
-    navigate("/chat", { state: { fromInvestigation: true } });
+    openTriage();
   };
 
   const handleViewTopology = () => {

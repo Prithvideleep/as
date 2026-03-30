@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, AlertTriangle, Clock } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Incident } from "../../data/mockData";
 
@@ -75,6 +75,8 @@ function getIncidentsForLevel(
   });
 }
 
+const LEVEL_PAGE_SIZE = 5;
+
 interface Props {
   incidents: Incident[];
   onSelect: (id: string) => void;
@@ -82,6 +84,8 @@ interface Props {
   mode?: "live" | "archive";
   layout?: "default" | "sidebar";
   sidebarMaxHeight?: string;
+  /** Incidents per page inside each expanded level (default 5) */
+  levelPageSize?: number;
 }
 
 export default function AlertDetailsPanel({
@@ -90,9 +94,17 @@ export default function AlertDetailsPanel({
   mode = "live",
   layout = "default",
   sidebarMaxHeight = "calc(100dvh - 64px)",
+  levelPageSize = LEVEL_PAGE_SIZE,
 }: Props) {
   const [open, setOpen] = useState<LevelKey | null>(mode === "archive" ? "clear" : "critical");
+  const [pageByLevel, setPageByLevel] = useState<Record<LevelKey, number>>(() =>
+    Object.fromEntries(LEVEL_CONFIG.map((c) => [c.key, 1])) as Record<LevelKey, number>
+  );
   const isSidebar = layout === "sidebar";
+
+  const setLevelPage = useCallback((key: LevelKey, page: number) => {
+    setPageByLevel((prev) => ({ ...prev, [key]: page }));
+  }, []);
 
   return (
     <div
@@ -142,7 +154,13 @@ export default function AlertDetailsPanel({
           <div key={cfg.key} style={{ borderBottom: "1px solid var(--color-border)" }}>
             {/* Row header */}
             <button
-              onClick={() => setOpen(isOpen ? null : cfg.key)}
+              onClick={() => {
+                if (isOpen) setOpen(null);
+                else {
+                  setPageByLevel((p) => ({ ...p, [cfg.key]: 1 }));
+                  setOpen(cfg.key);
+                }
+              }}
               style={{
                 width: "100%",
                 display: "flex",
@@ -221,13 +239,34 @@ export default function AlertDetailsPanel({
                     </div>
                   ) : (
                     <>
-                      {rows.length > 4 && (
-                        <div style={{ padding: "3px 20px 2px 36px", fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600 }}>
-                          {rows.length} incidents
-                        </div>
-                      )}
-                    <div style={{ overflowX: "hidden" }}>
-                      {rows.map((inc) => (
+                      {(() => {
+                        const totalPages = Math.max(1, Math.ceil(rows.length / levelPageSize));
+                        const rawPage = pageByLevel[cfg.key] ?? 1;
+                        const page = Math.min(Math.max(1, rawPage), totalPages);
+                        const pageRows = rows.slice((page - 1) * levelPageSize, page * levelPageSize);
+                        const showPager = rows.length > levelPageSize;
+
+                        return (
+                          <>
+                            <div
+                              style={{
+                                padding: "4px 20px 4px 36px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 8,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600 }}
+                              >
+                                {rows.length} incident{rows.length === 1 ? "" : "s"}
+                                {showPager ? ` · Page ${page} of ${totalPages}` : ""}
+                              </span>
+                            </div>
+                            <div style={{ overflowX: "hidden" }}>
+                              {pageRows.map((inc) => (
                         <button
                           key={inc.id}
                           onClick={() => onSelect(inc.id)}
@@ -281,8 +320,80 @@ export default function AlertDetailsPanel({
                             {formatTime(inc.timestamp)}
                           </span>
                         </button>
-                      ))}
-                    </div>
+                              ))}
+                            </div>
+                            {showPager && (
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 10,
+                                  padding: "8px 20px 10px 36px",
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  disabled={page <= 1}
+                                  onClick={() => setLevelPage(cfg.key, page - 1)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 8,
+                                    border: "1px solid var(--color-border)",
+                                    background:
+                                      page <= 1 ? "var(--color-hover-bg)" : "var(--color-bg-card)",
+                                    color: page <= 1 ? "var(--color-text-muted)" : cfg.color,
+                                    cursor: page <= 1 ? "not-allowed" : "pointer",
+                                    opacity: page <= 1 ? 0.6 : 1,
+                                  }}
+                                  aria-label="Previous page"
+                                >
+                                  <ChevronLeft style={{ width: 14, height: 14 }} />
+                                </button>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    color: "var(--color-text-secondary)",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {page} / {totalPages}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={page >= totalPages}
+                                  onClick={() => setLevelPage(cfg.key, page + 1)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 8,
+                                    border: "1px solid var(--color-border)",
+                                    background:
+                                      page >= totalPages
+                                        ? "var(--color-hover-bg)"
+                                        : "var(--color-bg-card)",
+                                    color:
+                                      page >= totalPages ? "var(--color-text-muted)" : cfg.color,
+                                    cursor: page >= totalPages ? "not-allowed" : "pointer",
+                                    opacity: page >= totalPages ? 0.6 : 1,
+                                  }}
+                                  aria-label="Next page"
+                                >
+                                  <ChevronRight style={{ width: 14, height: 14 }} />
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </>
                   )}
                 </motion.div>
