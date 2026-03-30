@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronRight, ChevronDown, Server, AlertOctagon, X } from "lucide-react";
 import type { Incident, IncidentDetail, BlastRadiusItem } from "../../data/mockData";
@@ -92,6 +92,10 @@ interface Props {
   layout?:         "default" | "sidebar";
   /** Cap card height when layout is sidebar; keeps card within viewport below sticky offset. */
   sidebarMaxHeight?: string;
+  /** Row highlight when linked from correlation focus (sidebar). */
+  highlightedService?: string | null;
+  /** When expanding a service, parent can scroll/highlight matching cluster. */
+  onServiceActivate?: (service: string) => void;
 }
 
 const SVC_PAGE_SIZE = 5;
@@ -103,13 +107,30 @@ export default function IncidentTile({
   lastUpdated,
   layout = "default",
   sidebarMaxHeight = "calc(100dvh - 64px)",
+  highlightedService = null,
+  onServiceActivate,
 }: Props) {
   const isSidebar = layout === "sidebar";
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [svcPage, setSvcPage] = useState(1);
+  const [sortMode, setSortMode] = useState<"severity" | "name">("severity");
 
-  const active      = incidents.filter((i) => i.status !== "resolved");
-  const services    = buildImpactedServices(active, incidentDetails);
+  const activeIncidentCount = useMemo(
+    () => incidents.filter((i) => i.status !== "resolved").length,
+    [incidents]
+  );
+
+  const services = useMemo(() => {
+    const active = incidents.filter((i) => i.status !== "resolved");
+    const list = buildImpactedServices(active, incidentDetails);
+    if (sortMode === "name") return [...list].sort((a, b) => a.service.localeCompare(b.service));
+    return list;
+  }, [incidents, incidentDetails, sortMode]);
+
+  useEffect(() => {
+    setSvcPage(1);
+  }, [sortMode]);
+
   const totalSvcPages = Math.max(1, Math.ceil(services.length / SVC_PAGE_SIZE));
   const pageServices  = services.slice((svcPage - 1) * SVC_PAGE_SIZE, svcPage * SVC_PAGE_SIZE);
 
@@ -208,6 +229,52 @@ export default function IncidentTile({
         <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--color-text-muted)" }}>
           {services.length} total
         </span>
+        {isSidebar && (
+          <div style={{ width: "100%", display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)", alignSelf: "center" }}>
+              Sort
+            </span>
+            {(
+              [
+                { id: "severity" as const, label: "Severity" },
+                { id: "name" as const, label: "A–Z" },
+              ]
+            ).map(({ id, label }) => {
+              const on = sortMode === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSortMode(id)}
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    border: `1px solid ${on ? "rgba(235,89,40,0.45)" : "var(--color-border)"}`,
+                    backgroundColor: on ? "rgba(235,89,40,0.1)" : "transparent",
+                    color: on ? "#EB5928" : "var(--color-text-muted)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            <span
+              style={{
+                fontSize: 9,
+                color: "var(--color-text-muted)",
+                alignSelf: "center",
+                marginLeft: "auto",
+                fontStyle: "italic",
+              }}
+              title="Expand a service to jump to a matching cluster when available"
+            >
+              Link → clusters
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Service rows — sidebar: fill remaining height and scroll; default: natural height */}
@@ -227,17 +294,26 @@ export default function IncidentTile({
             const color     = SEV_COLOR[svc.topSeverity] ?? "#6B7280";
             const isOpen    = expandedService === svc.service;
             const isLast    = i === pageServices.length - 1;
+            const isHi      = highlightedService === svc.service;
 
             return (
               <div
                 key={svc.service}
                 style={{
                   borderBottom: isLast && !isOpen ? "none" : "1px solid var(--color-border)",
+                  boxShadow: isHi ? `inset 3px 0 0 ${color}` : undefined,
+                  backgroundColor: isHi ? `${color}06` : undefined,
+                  transition: "background-color 0.2s ease, box-shadow 0.2s ease",
                 }}
               >
                 {/* Service row header */}
                 <button
-                  onClick={() => toggleService(svc.service)}
+                  type="button"
+                  title={svc.impact}
+                  onClick={() => {
+                    if (!isOpen) onServiceActivate?.(svc.service);
+                    toggleService(svc.service);
+                  }}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -248,7 +324,7 @@ export default function IncidentTile({
                     border: "none",
                     cursor: "pointer",
                     textAlign: "left",
-                    transition: "background 0.1s",
+                    transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     if (!isOpen) (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${color}06`;
@@ -457,7 +533,7 @@ export default function IncidentTile({
         }}
       >
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-          Across {active.length} active incident{active.length === 1 ? "" : "s"}
+          Across {activeIncidentCount} active incident{activeIncidentCount === 1 ? "" : "s"}
         </span>
         {totalSvcPages > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

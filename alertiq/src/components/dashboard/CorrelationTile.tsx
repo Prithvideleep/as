@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { ChevronDown, AlertOctagon, Server, GitBranch, Link2, Info, CheckCircle2, ArrowRight } from "lucide-react";
 import type { CorrelationCluster } from "../../data/mockData";
 
@@ -21,10 +21,34 @@ interface Props {
   onSelect: (id: string) => void;
   mode?: "live" | "archive";
   style?: React.CSSProperties;
+  /** Visually emphasize the cluster row (e.g. linked from Impacted Services). */
+  highlightIncidentId?: string | null;
+  /** When nonce changes with this id, scroll row into view and expand. */
+  scrollToIncidentId?: string | null;
+  scrollRequestNonce?: number;
 }
 
-export default function CorrelationTile({ clusters, onSelect, mode = "live", style }: Props) {
+export default function CorrelationTile({
+  clusters,
+  onSelect,
+  mode = "live",
+  style,
+  highlightIncidentId = null,
+  scrollToIncidentId = null,
+  scrollRequestNonce = 0,
+}: Props) {
   const [expanded, setExpanded] = useState<string | null>(clusters[0]?.incidentId ?? null);
+  const lastScrollNonce = useRef(0);
+
+  useEffect(() => {
+    if (!scrollToIncidentId || scrollRequestNonce === lastScrollNonce.current) return;
+    lastScrollNonce.current = scrollRequestNonce;
+    setExpanded(scrollToIncidentId);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`cluster-anchor-${scrollToIncidentId}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, [scrollToIncidentId, scrollRequestNonce]);
 
   return (
     <div
@@ -55,27 +79,34 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
               ? `Historical Clusters — Top ${clusters.length} Resolved`
               : `Correlation Tile — Top ${clusters.length} Alert Clusters`}
           </span>
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
+          <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2, lineHeight: 1.45 }}>
             {mode === "archive"
-              ? "Resolved incidents from this window with related events and resolution details"
-              : "AI-grouped critical & major alerts with related events and impacted services"}
+              ? "Resolved clusters — key facts and resolution context"
+              : "Top correlated incidents · severity · affected services at a glance"}
           </p>
         </div>
       </div>
 
       {/* Cluster cards */}
       <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+        <LayoutGroup>
         {clusters.map((cluster, idx) => {
           const isOpen = expanded === cluster.incidentId;
           const color = SEV_COLOR[cluster.severity] ?? "#6B7280";
+          const isLinked = highlightIncidentId === cluster.incidentId;
+          const servicePreview = cluster.impactedL1.slice(0, 3).map((s) => s.service);
+          const serviceRest = cluster.impactedL1.length - servicePreview.length;
 
           return (
             <div
               key={cluster.incidentId}
+              id={`cluster-anchor-${cluster.incidentId}`}
               style={{
                 borderBottom: idx < clusters.length - 1 ? "1px solid var(--color-border)" : "none",
-                borderLeft: `3px solid ${isOpen ? color : "transparent"}`,
-                transition: "border-color 0.15s",
+                borderLeft: `3px solid ${isOpen || isLinked ? color : "transparent"}`,
+                transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                boxShadow: isLinked ? `inset 0 0 0 1px ${color}40, 0 0 0 3px ${color}18` : undefined,
+                backgroundColor: isLinked ? `${color}05` : undefined,
               }}
             >
               {/* Cluster header row */}
@@ -83,11 +114,11 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                 style={{
                   width: "100%",
                   display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "0 12px 0 0",
+                  alignItems: "stretch",
+                  gap: 8,
+                  padding: "0 10px 0 0",
                   background: isOpen ? `${color}06` : "transparent",
-                  transition: "background 0.12s",
+                  transition: "background 0.2s ease",
                 }}
               >
                 {/* Expand/collapse button (no nested buttons inside) */}
@@ -96,9 +127,10 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                   style={{
                     flex: 1,
                     display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 8px 14px 17px",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    gap: 6,
+                    padding: "12px 6px 12px 14px",
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
@@ -106,58 +138,30 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                     minWidth: 0,
                   }}
                 >
-                  {/* Severity badge */}
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: "0.06em",
-                      color,
-                      backgroundColor: `${color}15`,
-                      padding: "2px 7px",
-                      borderRadius: 999,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {SEV_LABEL[cluster.severity] ?? cluster.severity.toUpperCase()}
-                  </span>
-
-                  {/* Incident name */}
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "var(--color-text-primary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      minWidth: 0,
-                    }}
-                  >
-                    {cluster.incidentName}
-                  </span>
-
-                  {/* Counts + resolved badge */}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--color-text-muted)",
-                      flexShrink: 0,
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                    }}
-                  >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        letterSpacing: "0.06em",
+                        color,
+                        backgroundColor: `${color}15`,
+                        padding: "3px 8px",
+                        borderRadius: 999,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {SEV_LABEL[cluster.severity] ?? cluster.severity.toUpperCase()}
+                    </span>
                     {cluster.resolutionSummary && (
                       <span
                         style={{
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: 800,
                           letterSpacing: "0.05em",
                           color: "#22C55E",
                           backgroundColor: "rgba(34,197,94,0.12)",
-                          padding: "2px 7px",
+                          padding: "2px 6px",
                           borderRadius: 999,
                           flexShrink: 0,
                         }}
@@ -165,26 +169,101 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                         RESOLVED
                       </span>
                     )}
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                      <AlertOctagon style={{ width: 10, height: 10 }} />
-                      {cluster.relatedAlerts.length} alerts
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "var(--color-text-primary)",
+                        lineHeight: 1.25,
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        minWidth: 0,
+                      }}
+                    >
+                      {cluster.incidentName}
                     </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                      <Server style={{ width: 10, height: 10 }} />
-                      {cluster.impactedL1.length} services
-                    </span>
-                  </span>
-
-                  <ChevronDown
+                    <ChevronDown
+                      style={{
+                        width: 14,
+                        height: 14,
+                        color: "var(--color-text-muted)",
+                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
+                        flexShrink: 0,
+                        alignSelf: "flex-start",
+                        marginTop: 3,
+                      }}
+                    />
+                  </div>
+                  <div
                     style={{
-                      width: 14,
-                      height: 14,
-                      color: "var(--color-text-muted)",
-                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 0.2s",
-                      flexShrink: 0,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingLeft: 2,
                     }}
-                  />
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)" }}>
+                      Affected
+                    </span>
+                    {servicePreview.length === 0 ? (
+                      <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                        No L1 services tagged
+                      </span>
+                    ) : (
+                      <>
+                        {servicePreview.map((name) => (
+                          <span
+                            key={name}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              backgroundColor: `${color}12`,
+                              color: "var(--color-text-secondary)",
+                              border: `1px solid ${color}28`,
+                              maxWidth: "100%",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {name}
+                          </span>
+                        ))}
+                        {serviceRest > 0 && (
+                          <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600 }}>
+                            +{serviceRest} more
+                          </span>
+                        )}
+                      </>
+                    )}
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 10,
+                        color: "var(--color-text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <AlertOctagon style={{ width: 10, height: 10, opacity: 0.75 }} />
+                        {cluster.relatedAlerts.length}
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                        <Server style={{ width: 10, height: 10, opacity: 0.75 }} />
+                        {cluster.impactedL1.length}
+                      </span>
+                    </span>
+                  </div>
                 </button>
 
                 {/* Direct investigate / view link — separate sibling button */}
@@ -194,6 +273,7 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                   style={{
                     display: "flex",
                     alignItems: "center",
+                    alignSelf: "center",
                     gap: 3,
                     padding: "3px 8px",
                     borderRadius: 6,
@@ -223,18 +303,23 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div
+                    layout
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22, ease: "easeInOut" }}
+                    transition={{
+                      height: { duration: 0.32, ease: [0.4, 0, 0.2, 1] },
+                      opacity: { duration: 0.22 },
+                      layout: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
+                    }}
                     style={{ overflow: "hidden" }}
                   >
                     <div
                       style={{
-                        padding: "0 20px 18px 20px",
+                        padding: "4px 18px 16px 18px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 14,
+                        gap: 12,
                       }}
                     >
                       {/* Related Alerts */}
@@ -386,6 +471,7 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
             </div>
           );
         })}
+        </LayoutGroup>
       </div>
     </div>
   );

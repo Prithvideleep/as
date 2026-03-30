@@ -13,6 +13,7 @@ import {
 import type { AlertLevelSnapshot } from "../data/mockData";
 import AlertLevelBar from "../components/dashboard/AlertLevelBar";
 import AlertDetailsPanel from "../components/dashboard/AlertDetailsPanel";
+import ResolutionLogPanel from "../components/dashboard/ResolutionLogPanel";
 import CorrelationTile from "../components/dashboard/CorrelationTile";
 import IncidentTile from "../components/dashboard/IncidentTile";
 import AllIncidentsPanel from "../components/dashboard/AllIncidentsPanel";
@@ -27,25 +28,18 @@ const SECTION_LABEL: React.CSSProperties = {
   color: "var(--color-text-muted)",
   paddingLeft: 2,
   display: "block",
-  marginBottom: 6,
+  marginBottom: 8,
 };
+
+/** Unified vertical rhythm (main lane + rail). */
+const DASH_GRID_GAP = 28;
+const DASH_STACK_GAP = 24;
+const DASH_RAIL_WIDTH_PX = 328;
 
 /** Match `index.css` sidebar breakpoint — sticky sidebar only when main is desktop-wide. */
 const DASHBOARD_WIDE_MIN_PX = 901;
-/** Offset from top of scrollport while stuck (breathing room, avoids flush edge). */
-const DASHBOARD_STICKY_TOP_PX = 16;
-/** Max height per sticky rail card (~½ viewport) — Impacted + Alert Level only. */
-const DASHBOARD_SIDEBAR_CARD_MAX = `calc((100dvh - ${DASHBOARD_STICKY_TOP_PX}px - 56px) / 2)`;
-
-/** Main column paints below the rail; large gap avoids ambiguity with transformed children. */
-const DASHBOARD_MAIN_COLUMN_Z = 0;
-const DASHBOARD_RAIL_COLUMN_Z = 10;
-/** Impacted must stay above rail Alert Level and all main-column layers when stickies overlap. */
-const STICKY_IMPACTED_Z = 30;
-const STICKY_ALERT_LEVEL_Z = 12;
-
-const STICKY_CARD_SHADOW =
-  "0 2px 12px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.04)";
+/** Impacted card max height inside fixed rail (internal scroll). */
+const DASHBOARD_IMPACTED_SIDEBAR_MAX = "min(420px, calc(55dvh - 40px))";
 
 function useDashboardWideLayout() {
   const [wide, setWide] = useState(() =>
@@ -67,6 +61,24 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { setSelectedIncidentId } = useAppContext();
   const dashboardWide = useDashboardWideLayout();
+
+  /** Link Impacted Services ↔ Top Alert Clusters (matching L1 service). */
+  const [clusterLink, setClusterLink] = useState<{ clusterId: string; service: string } | null>(null);
+  const [clusterScrollNonce, setClusterScrollNonce] = useState(0);
+
+  const linkClusterFromService = useCallback((service: string) => {
+    const c = correlationClusters.find((cl) => cl.impactedL1.some((s) => s.service === service));
+    if (c) {
+      setClusterLink({ clusterId: c.incidentId, service });
+      setClusterScrollNonce((n) => n + 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!clusterLink) return;
+    const t = window.setTimeout(() => setClusterLink(null), 10000);
+    return () => window.clearTimeout(t);
+  }, [clusterLink]);
 
   // Time-interval selector: null = Live, 15 | 30 | 45 | 60 = past snapshot offset
   const [viewOffset, setViewOffset] = useState<null | 15 | 30 | 45 | 60>(null);
@@ -99,6 +111,17 @@ export default function DashboardPage() {
     </div>
   );
 
+  const resolutionLogBlock = (
+    <div>
+      <span style={SECTION_LABEL}>Resolution log</span>
+      <ResolutionLogPanel
+        incidents={incidents}
+        incidentDetails={incidentDetails}
+        onSelect={handleSelect}
+      />
+    </div>
+  );
+
   const allIncidentsBlock = (
     <div>
       <span style={SECTION_LABEL}>All Incidents</span>
@@ -113,10 +136,62 @@ export default function DashboardPage() {
     lastUpdated: activeSnapshot.lastUpdated,
   } as const;
 
-  return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "var(--page-pad)" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+  const wideMainScroll: React.CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflowY: "auto",
+    overflowX: "clip",
+    paddingRight: 4,
+    borderRight: "1px solid var(--color-border)",
+    marginRight: 4,
+    boxSizing: "border-box",
+  };
 
+  const wideRailFixed: React.CSSProperties = {
+    width: DASH_RAIL_WIDTH_PX,
+    flexShrink: 0,
+    minHeight: 0,
+    alignSelf: "stretch",
+    maxHeight: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: DASH_STACK_GAP,
+    overflowY: "auto",
+    overflowX: "hidden",
+    overscrollBehavior: "contain",
+    backgroundColor: "var(--color-bg-primary)",
+    paddingLeft: 8,
+    marginLeft: -4,
+    boxShadow: "-10px 0 24px rgba(15, 23, 42, 0.045)",
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        padding: "var(--page-pad)",
+      }}
+    >
+      {dashboardWide ? (
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            gap: DASH_GRID_GAP,
+            maxWidth: 1480,
+            margin: "0 auto",
+            width: "100%",
+            alignItems: "stretch",
+          }}
+        >
+          <div style={wideMainScroll}>
         {/* ── Page header ──────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -133,49 +208,37 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Time controls */}
+          {/* Time controls — single dropdown (Live + all snapshot offsets) */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {/* Quick-access interval pills */}
-            <div style={{ display: "flex", alignItems: "center", gap: 2, backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: 10, padding: "3px 4px" }}>
-              <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)", marginLeft: 6, flexShrink: 0 }} />
-              {([null, 15, 30, 45] as const).map((offset) => {
-                const label  = offset === null ? "Live" : `–${offset}m`;
-                const active = viewOffset === offset;
-                return (
-                  <button
-                    key={String(offset)}
-                    onClick={() => setViewOffset(offset)}
-                    style={{
-                      padding: "4px 10px", borderRadius: 7, border: "none", cursor: "pointer",
-                      fontSize: 11, fontWeight: 700, transition: "all 0.15s",
-                      backgroundColor: active ? (offset === null ? "rgba(235,89,40,0.15)" : "rgba(99,102,241,0.15)") : "transparent",
-                      color: active ? (offset === null ? "#EB5928" : "#818CF8") : "var(--color-text-muted)",
-                    }}
-                  >{label}</button>
-                );
-              })}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)", flexShrink: 0 }} aria-hidden />
+              <select
+                aria-label="Alert level time window"
+                value={viewOffset === null ? "live" : String(viewOffset)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setViewOffset(val === "live" ? null : (Number(val) as 15 | 30 | 45 | 60));
+                }}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  backgroundColor: "var(--color-bg-card)",
+                  color: viewOffset !== null ? "#818CF8" : "var(--color-text-secondary)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  outline: "none",
+                  minWidth: 132,
+                }}
+              >
+                <option value="live">Live</option>
+                <option value="15">–15 min</option>
+                <option value="30">–30 min</option>
+                <option value="45">–45 min</option>
+                <option value="60">–60 min</option>
+              </select>
             </div>
-
-            {/* Dropdown — all options including –60m */}
-            <select
-              value={viewOffset === null ? "live" : String(viewOffset)}
-              onChange={(e) => {
-                const val = e.target.value;
-                setViewOffset(val === "live" ? null : (Number(val) as 15 | 30 | 45 | 60));
-              }}
-              style={{
-                padding: "6px 10px", borderRadius: 8, border: "1px solid var(--color-border)",
-                backgroundColor: "var(--color-bg-card)",
-                color: viewOffset !== null ? "#818CF8" : "var(--color-text-secondary)",
-                fontSize: 11, fontWeight: 700, cursor: "pointer", outline: "none",
-              }}
-            >
-              <option value="live">Live</option>
-              <option value="15">–15 min</option>
-              <option value="30">–30 min</option>
-              <option value="45">–45 min</option>
-              <option value="60">–60 min</option>
-            </select>
 
             <button
               onClick={handleRefresh}
@@ -221,42 +284,24 @@ export default function DashboardPage() {
         </AnimatePresence>
 
         {/* ════════════════════════════════════════════════════════
-            Wide: Row 1 — Correlation | Alert Details (1fr 1fr); rail — Impacted, Alert Level.
-            Narrow: single column — clusters, recent, impacted, alert level, find.
+            Wide (this branch): main column scrolls; right rail is fixed height / internal scroll.
             ════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
           style={{
-            display: "grid",
-            // minmax(0, 1fr) prevents min-content width from overflowing into the sidebar column
-            gridTemplateColumns: dashboardWide ? "minmax(0, 1fr) 310px" : "minmax(0, 1fr)",
-            gap: 20,
-            alignItems: "start",
-            position: "relative",
-            zIndex: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: DASH_STACK_GAP,
+            minWidth: 0,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-              minWidth: 0,
-              maxWidth: "100%",
-              position: "relative",
-              zIndex: DASHBOARD_MAIN_COLUMN_Z,
-              overflowX: "clip",
-              isolation: "isolate",
-            }}
-          >
-            {dashboardWide ? (
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-                  gap: 20,
+                  gap: DASH_STACK_GAP,
                   alignItems: "stretch",
                   minWidth: 0,
                 }}
@@ -268,101 +313,190 @@ export default function DashboardPage() {
                       clusters={correlationClusters}
                       onSelect={handleSelect}
                       style={{ flex: 1 }}
+                      highlightIncidentId={clusterLink?.clusterId ?? null}
+                      scrollToIncidentId={clusterLink?.clusterId ?? null}
+                      scrollRequestNonce={clusterScrollNonce}
                     />
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
                   <span style={SECTION_LABEL}>Recent Alerts</span>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-                    <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      minHeight: 0,
+                      gap: DASH_STACK_GAP,
+                    }}
+                  >
+                    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                      <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
+                    </div>
+                    <div style={{ flexShrink: 0 }}>
+                      <span style={SECTION_LABEL}>Alert Level</span>
+                      <div>
+                        <AlertLevelBar
+                          snapshot={activeSnapshot}
+                          onRefresh={viewOffset === null ? handleRefresh : undefined}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <>
-                <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <span style={SECTION_LABEL}>Top Alert Clusters</span>
-                  <CorrelationTile clusters={correlationClusters} onSelect={handleSelect} />
-                </div>
-                <div>
-                  <span style={SECTION_LABEL}>Recent Alerts</span>
-                  <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <span style={SECTION_LABEL}>Impacted Services</span>
-                  <IncidentTile {...impactedTileProps} layout="default" />
-                </div>
-                {alertLevelBlock}
-              </>
-            )}
 
             {allIncidentsBlock}
+        </motion.div>
           </div>
 
-          {dashboardWide && (
+          <aside style={wideRailFixed} aria-label="Dashboard context">
+            <div style={{ flexShrink: 0, width: "100%" }}>
+              <span style={SECTION_LABEL}>Impacted Services</span>
+              <IncidentTile
+                {...impactedTileProps}
+                layout="sidebar"
+                sidebarMaxHeight={DASHBOARD_IMPACTED_SIDEBAR_MAX}
+                highlightedService={clusterLink?.service ?? null}
+                onServiceActivate={linkClusterFromService}
+              />
+            </div>
             <div
               style={{
-                alignSelf: "stretch",
-                minWidth: 0,
+                flex: 1,
+                minHeight: 0,
                 width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                gap: 20,
-                position: "relative",
-                zIndex: DASHBOARD_RAIL_COLUMN_Z,
-                isolation: "isolate",
-                backgroundColor: "var(--color-bg-primary)",
-                boxSizing: "border-box",
-                boxShadow:
-                  "inset 1px 0 0 var(--color-border), -6px 0 16px rgba(15, 23, 42, 0.035)",
               }}
             >
-              <div
-                style={{
-                  position: "sticky",
-                  top: DASHBOARD_STICKY_TOP_PX,
-                  alignSelf: "stretch",
-                  width: "100%",
-                  maxWidth: "100%",
-                  zIndex: STICKY_IMPACTED_Z,
-                  transition: "box-shadow 0.2s ease",
-                  boxShadow: STICKY_CARD_SHADOW,
-                  borderRadius: 14,
-                }}
-              >
-                <span style={SECTION_LABEL}>Impacted Services</span>
-                <IncidentTile
-                  {...impactedTileProps}
+              <span style={SECTION_LABEL}>Resolution log</span>
+              <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                <ResolutionLogPanel
+                  incidents={incidents}
+                  incidentDetails={incidentDetails}
+                  onSelect={handleSelect}
                   layout="sidebar"
-                  sidebarMaxHeight={DASHBOARD_SIDEBAR_CARD_MAX}
-                />
-              </div>
-              <div
-                style={{
-                  position: "sticky",
-                  top: DASHBOARD_STICKY_TOP_PX,
-                  alignSelf: "stretch",
-                  width: "100%",
-                  maxWidth: "100%",
-                  zIndex: STICKY_ALERT_LEVEL_Z,
-                  transition: "box-shadow 0.2s ease",
-                  boxShadow: STICKY_CARD_SHADOW,
-                  borderRadius: 14,
-                }}
-              >
-                <span style={SECTION_LABEL}>Alert Level</span>
-                <AlertLevelBar
-                  snapshot={activeSnapshot}
-                  onRefresh={viewOffset === null ? handleRefresh : undefined}
-                  layout="sidebar"
-                  sidebarMaxHeight={DASHBOARD_SIDEBAR_CARD_MAX}
+                  sidebarMaxHeight="100%"
                 />
               </div>
             </div>
-          )}
-        </motion.div>
+          </aside>
+        </div>
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <div style={{ maxWidth: 1480, margin: "0 auto" }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, gap: 12, flexWrap: "wrap" }}
+            >
+              <div>
+                <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 4 }}>
+                  Alert IQ Dashboard
+                </h1>
+                <p style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+                  Real-time AI-grouped alert intelligence and cluster monitoring
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)", flexShrink: 0 }} aria-hidden />
+                  <select
+                    aria-label="Alert level time window"
+                    value={viewOffset === null ? "live" : String(viewOffset)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setViewOffset(val === "live" ? null : (Number(val) as 15 | 30 | 45 | 60));
+                    }}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: "1px solid var(--color-border)",
+                      backgroundColor: "var(--color-bg-card)",
+                      color: viewOffset !== null ? "#818CF8" : "var(--color-text-secondary)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none",
+                      minWidth: 132,
+                    }}
+                  >
+                    <option value="live">Live</option>
+                    <option value="15">–15 min</option>
+                    <option value="30">–30 min</option>
+                    <option value="45">–45 min</option>
+                    <option value="60">–60 min</option>
+                  </select>
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
+                    borderRadius: 10, border: "1px solid var(--color-border)",
+                    backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(235,89,40,0.4)"; (e.currentTarget as HTMLButtonElement).style.color = "#EB5928"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)"; }}
+                >
+                  <RefreshCw style={{ width: 13, height: 13 }} />
+                  Refresh
+                </button>
+              </div>
+            </motion.div>
 
-      </div>
+            <AnimatePresence>
+              {viewOffset !== null && (
+                <motion.div
+                  key="past-banner-narrow"
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", marginBottom: 16,
+                    borderRadius: 10, backgroundColor: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.25)",
+                    fontSize: 12, color: "#A5B4FC", fontWeight: 600,
+                  }}
+                >
+                  <Clock style={{ width: 13, height: 13, flexShrink: 0 }} />
+                  Viewing Alert Level snapshot from <strong style={{ color: "#818CF8" }}>{viewOffset} minutes ago</strong>.
+                  &nbsp;Other cards reflect current live data.
+                  <button
+                    onClick={() => setViewOffset(null)}
+                    style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#818CF8", fontSize: 11, fontWeight: 700, padding: "2px 6px", borderRadius: 6 }}
+                  >
+                    Back to Live
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ display: "flex", flexDirection: "column", gap: DASH_STACK_GAP }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <span style={SECTION_LABEL}>Top Alert Clusters</span>
+                <CorrelationTile clusters={correlationClusters} onSelect={handleSelect} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: DASH_STACK_GAP }}>
+                <span style={SECTION_LABEL}>Recent Alerts</span>
+                <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
+                {alertLevelBlock}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <span style={SECTION_LABEL}>Impacted Services</span>
+                <IncidentTile {...impactedTileProps} layout="default" />
+              </div>
+              {resolutionLogBlock}
+              {allIncidentsBlock}
+            </motion.div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

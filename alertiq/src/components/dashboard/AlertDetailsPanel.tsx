@@ -127,13 +127,13 @@ export default function AlertDetailsPanel({
         </p>
       </div>
 
-      {/* Accordion rows — outer scroll in sidebar layout */}
       <div
-        style={
-          isSidebar
-            ? { flex: "1 1 auto", minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }
-            : undefined
-        }
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+        }}
       >
       {LEVEL_CONFIG.map((cfg) => {
         const rows = getIncidentsForLevel(incidents, cfg, mode);
