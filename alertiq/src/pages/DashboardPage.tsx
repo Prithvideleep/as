@@ -38,9 +38,6 @@ const DASH_RAIL_WIDTH_PX = 328;
 
 /** Match `index.css` sidebar breakpoint — sticky sidebar only when main is desktop-wide. */
 const DASHBOARD_WIDE_MIN_PX = 901;
-/** Impacted card max height inside fixed rail (internal scroll). */
-const DASHBOARD_IMPACTED_SIDEBAR_MAX = "min(420px, calc(55dvh - 40px))";
-
 function useDashboardWideLayout() {
   const [wide, setWide] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia(`(min-width: ${DASHBOARD_WIDE_MIN_PX}px)`).matches : false
@@ -302,46 +299,29 @@ export default function DashboardPage() {
                   display: "grid",
                   gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
                   gap: DASH_STACK_GAP,
-                  alignItems: "stretch",
+                  alignItems: "start",
                   minWidth: 0,
                 }}
               >
-                <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                   <span style={SECTION_LABEL}>Top Alert Clusters</span>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-                    <CorrelationTile
-                      clusters={correlationClusters}
-                      onSelect={handleSelect}
-                      style={{ flex: 1 }}
-                      highlightIncidentId={clusterLink?.clusterId ?? null}
-                      scrollToIncidentId={clusterLink?.clusterId ?? null}
-                      scrollRequestNonce={clusterScrollNonce}
-                    />
-                  </div>
+                  <CorrelationTile
+                    clusters={correlationClusters}
+                    onSelect={handleSelect}
+                    highlightIncidentId={clusterLink?.clusterId ?? null}
+                    scrollToIncidentId={clusterLink?.clusterId ?? null}
+                    scrollRequestNonce={clusterScrollNonce}
+                  />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: DASH_STACK_GAP }}>
                   <span style={SECTION_LABEL}>Recent Alerts</span>
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      minHeight: 0,
-                      gap: DASH_STACK_GAP,
-                    }}
-                  >
-                    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-                      <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
-                    </div>
-                    <div style={{ flexShrink: 0 }}>
-                      <span style={SECTION_LABEL}>Alert Level</span>
-                      <div>
-                        <AlertLevelBar
-                          snapshot={activeSnapshot}
-                          onRefresh={viewOffset === null ? handleRefresh : undefined}
-                        />
-                      </div>
-                    </div>
+                  <AlertDetailsPanel incidents={incidents} onSelect={handleSelect} />
+                  <div>
+                    <span style={SECTION_LABEL}>Alert Level</span>
+                    <AlertLevelBar
+                      snapshot={activeSnapshot}
+                      onRefresh={viewOffset === null ? handleRefresh : undefined}
+                    />
                   </div>
                 </div>
               </div>
@@ -356,30 +336,18 @@ export default function DashboardPage() {
               <IncidentTile
                 {...impactedTileProps}
                 layout="sidebar"
-                sidebarMaxHeight={DASHBOARD_IMPACTED_SIDEBAR_MAX}
                 highlightedService={clusterLink?.service ?? null}
                 onServiceActivate={linkClusterFromService}
               />
             </div>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
+            <div style={{ width: "100%", flexShrink: 0 }}>
               <span style={SECTION_LABEL}>Resolution log</span>
-              <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-                <ResolutionLogPanel
-                  incidents={incidents}
-                  incidentDetails={incidentDetails}
-                  onSelect={handleSelect}
-                  layout="sidebar"
-                  sidebarMaxHeight="100%"
-                />
-              </div>
+              <ResolutionLogPanel
+                incidents={incidents}
+                incidentDetails={incidentDetails}
+                onSelect={handleSelect}
+                layout="sidebar"
+              />
             </div>
           </aside>
         </div>

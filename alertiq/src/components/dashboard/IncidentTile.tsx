@@ -151,7 +151,6 @@ export default function IncidentTile({
         flexDirection: "column",
         overflow: "hidden",
         flex: isSidebar ? "0 1 auto" : 1,
-        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
         width: "100%",
         justifyContent: "flex-start",
@@ -278,13 +277,7 @@ export default function IncidentTile({
       </div>
 
       {/* Service rows — sidebar: fill remaining height and scroll; default: natural height */}
-      <div
-        style={
-          isSidebar
-            ? { flex: "1 1 auto", minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }
-            : { flex: "0 0 auto", overflowY: "visible" }
-        }
-      >
+      <div style={{ flex: "0 0 auto", overflow: "visible" }}>
         {pageServices.length === 0 ? (
           <div style={{ padding: "18px 16px", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center" }}>
             No impacted services detected

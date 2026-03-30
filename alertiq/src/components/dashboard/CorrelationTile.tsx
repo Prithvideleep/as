@@ -87,8 +87,8 @@ export default function CorrelationTile({
         </div>
       </div>
 
-      {/* Cluster cards */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+      {/* Cluster cards — height from content; parent column scrolls (avoids nested scroll) */}
+      <div style={{ flex: "0 0 auto", overflow: "visible" }}>
         <LayoutGroup>
         {clusters.map((cluster, idx) => {
           const isOpen = expanded === cluster.incidentId;

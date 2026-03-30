@@ -53,10 +53,10 @@ export default function AlertLevelBar({
         borderRadius: 14,
         padding: isSidebar ? "18px 20px 14px" : "18px 20px",
         border: "1px solid var(--color-border)",
-        flex: isSidebar ? "0 1 auto" : 1,
+        flex: isSidebar ? "0 1 auto" : "0 1 auto",
         maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
-        minHeight: 0,
+        minHeight: isSidebar ? 0 : undefined,
         width: "100%",
         display: "flex",
         flexDirection: "column",
@@ -100,11 +100,11 @@ export default function AlertLevelBar({
           display: "flex",
           flexDirection: "column",
           gap: 10,
-          flex: isSidebar ? "1 1 auto" : 1,
+          flex: isSidebar ? "1 1 auto" : "0 0 auto",
           minHeight: isSidebar ? 0 : undefined,
           overflowY: isSidebar ? "auto" : "visible",
           overscrollBehavior: isSidebar ? "contain" : undefined,
-          justifyContent: isSidebar ? "flex-start" : "space-between",
+          justifyContent: isSidebar ? "flex-start" : "flex-start",
         }}
       >
         {LEVELS.map((lv, idx) => {

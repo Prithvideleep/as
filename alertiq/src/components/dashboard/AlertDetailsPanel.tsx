@@ -100,10 +100,10 @@ export default function AlertDetailsPanel({
         backgroundColor: "var(--color-bg-card)",
         borderRadius: 14,
         border: "1px solid var(--color-border)",
-        flex: isSidebar ? "0 1 auto" : 1,
+        flex: isSidebar ? "0 1 auto" : "0 1 auto",
         maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
-        minHeight: 0,
+        minHeight: isSidebar ? 0 : undefined,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -226,13 +226,7 @@ export default function AlertDetailsPanel({
                           {rows.length} incidents
                         </div>
                       )}
-                    <div
-                      style={{
-                        maxHeight: isSidebar ? undefined : rows.length > 4 ? 152 : undefined,
-                        overflowY: isSidebar ? "visible" : rows.length > 4 ? "auto" : "visible",
-                        overflowX: "hidden",
-                      }}
-                    >
+                    <div style={{ overflowX: "hidden" }}>
                       {rows.map((inc) => (
                         <button
                           key={inc.id}

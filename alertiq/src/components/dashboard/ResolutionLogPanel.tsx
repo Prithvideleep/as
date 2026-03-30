@@ -18,7 +18,6 @@ interface Props {
   incidentDetails: Record<string, IncidentDetail>;
   onSelect?: (id: string) => void;
   layout?: "default" | "sidebar";
-  sidebarMaxHeight?: string;
   maxItems?: number;
 }
 
@@ -27,7 +26,6 @@ export default function ResolutionLogPanel({
   incidentDetails,
   onSelect,
   layout = "default",
-  sidebarMaxHeight = "min(320px, calc(45dvh - 24px))",
   maxItems = 14,
 }: Props) {
   const isSidebar = layout === "sidebar";
@@ -53,10 +51,8 @@ export default function ResolutionLogPanel({
         backgroundColor: "var(--color-bg-card)",
         borderRadius: 14,
         border: "1px solid var(--color-border)",
-        flex: isSidebar ? "1 1 auto" : undefined,
-        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
+        flex: isSidebar ? "0 1 auto" : undefined,
         minWidth: 0,
-        minHeight: isSidebar ? 0 : undefined,
         width: "100%",
         display: "flex",
         flexDirection: "column",
@@ -76,11 +72,11 @@ export default function ResolutionLogPanel({
       </div>
       <div
         style={{
-          flex: isSidebar ? "1 1 auto" : undefined,
-          minHeight: isSidebar ? 0 : 120,
+          flex: "0 0 auto",
+          minHeight: isSidebar ? undefined : 120,
           maxHeight: isSidebar ? undefined : 280,
-          overflowY: "auto",
-          overscrollBehavior: "contain",
+          overflowY: isSidebar ? "visible" : "auto",
+          overscrollBehavior: isSidebar ? undefined : "contain",
           padding: "10px 0 12px",
         }}
       >
