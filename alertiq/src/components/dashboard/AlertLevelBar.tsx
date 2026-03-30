@@ -15,11 +15,13 @@ const LEVELS: {
   { key: "error",    label: "Error",    color: "#6B7280", bg: "rgba(107,114,128,0.1)" },
 ];
 
-function minutesAgo(iso: string): string {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff <= 0) return "just now";
-  if (diff === 1) return "1 min ago";
-  return `${diff} min ago`;
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+  const abs = d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (diff <= 1) return `${abs} (just now)`;
+  return `${abs} (${diff} min ago)`;
 }
 
 interface Props {
@@ -75,7 +77,7 @@ export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, window
       <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 16 }}>
         {periodLabel
           ? <>Period: {periodLabel} &nbsp;·&nbsp; {windowCount ?? 0} incident{windowCount === 1 ? "" : "s"} reviewed</>
-          : <>Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp; Updated {minutesAgo(snapshot.lastUpdated)}</>
+          : <>Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp; Updated {formatTimestamp(snapshot.lastUpdated)}</>
         }
       </p>
 

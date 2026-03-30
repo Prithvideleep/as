@@ -203,6 +203,26 @@ export const incidents: Incident[] = [
     impactedServices: 1,
     timestamp: "2026-02-25T03:50:00Z",
   },
+
+  // ── Scroll-test stubs — critical ──────────────────────────────────────────
+  { id: "CL-T01", name: "API Gateway Circuit Breaker Open",       severity: "critical", status: "active",        alertCount: 38, impactedServices: 7,  timestamp: "2026-03-17T09:30:00Z" },
+  { id: "CL-T02", name: "Postgres Replication Lag Critical",      severity: "critical", status: "investigating", alertCount: 29, impactedServices: 5,  timestamp: "2026-03-17T08:10:00Z" },
+  { id: "CL-T03", name: "Container OOMKill Storm — prod-ns",      severity: "critical", status: "active",        alertCount: 44, impactedServices: 9,  timestamp: "2026-03-17T07:45:00Z" },
+
+  // ── Scroll-test stubs — high (warning) ────────────────────────────────────
+  { id: "CL-T04", name: "gRPC Timeout Spike — Checkout Service",  severity: "high",     status: "investigating", alertCount: 21, impactedServices: 4,  timestamp: "2026-03-17T09:00:00Z" },
+  { id: "CL-T05", name: "RabbitMQ Queue Depth Warning",           severity: "high",     status: "active",        alertCount: 17, impactedServices: 3,  timestamp: "2026-03-17T08:35:00Z" },
+  { id: "CL-T06", name: "CDN Origin P99 Latency Elevated",        severity: "high",     status: "active",        alertCount: 13, impactedServices: 2,  timestamp: "2026-03-17T07:20:00Z" },
+
+  // ── Scroll-test stubs — medium (minor) ────────────────────────────────────
+  { id: "CL-T07", name: "Disk Usage Warning — log-node-04",       severity: "medium",   status: "active",        alertCount: 9,  impactedServices: 1,  timestamp: "2026-03-17T08:50:00Z" },
+  { id: "CL-T08", name: "Elevated 4xx Rate on /api/orders",       severity: "medium",   status: "investigating", alertCount: 11, impactedServices: 2,  timestamp: "2026-03-17T08:05:00Z" },
+  { id: "CL-T09", name: "Cron Job Missed Schedule — report-gen",  severity: "medium",   status: "active",        alertCount: 6,  impactedServices: 1,  timestamp: "2026-03-17T06:15:00Z" },
+
+  // ── Scroll-test stubs — low (clear) ───────────────────────────────────────
+  { id: "CL-T10", name: "Stale Feature Flag Cleanup Required",    severity: "low",      status: "resolved",      alertCount: 3,  impactedServices: 1,  timestamp: "2026-03-16T14:00:00Z" },
+  { id: "CL-T11", name: "Minor Memory Leak — worker-v2 Sidecar",  severity: "low",      status: "resolved",      alertCount: 4,  impactedServices: 1,  timestamp: "2026-03-15T11:30:00Z" },
+  { id: "CL-T12", name: "Deprecated API Version Still in Use",    severity: "low",      status: "resolved",      alertCount: 2,  impactedServices: 1,  timestamp: "2026-03-14T09:00:00Z" },
 ];
 
 // ─── Incident details ───
@@ -1249,6 +1269,49 @@ export const alertLevelSnapshot: AlertLevelSnapshot = {
     error: 0,
   },
 };
+
+// ─── Historical alert-level snapshots (simulated past 15-min intervals) ────
+
+/** One historical snapshot entry (15, 30, 45, or 60 min ago). */
+export interface HistoricalAlertSnapshot extends AlertLevelSnapshot {
+  /** How many minutes in the past this snapshot was taken */
+  offsetMinutes: 15 | 30 | 45 | 60;
+  /** Human-readable label, e.g. "–15 min" */
+  label: string;
+}
+
+const _now = Date.now();
+
+export const historicalAlertSnapshots: HistoricalAlertSnapshot[] = [
+  {
+    offsetMinutes: 15,
+    label: "–15 min",
+    lastUpdated: new Date(_now - 15 * 60 * 1000).toISOString(),
+    intervalMinutes: 15,
+    levels: { critical: 162, warning: 68, minor: 40, clear: 3, error: 2 },
+  },
+  {
+    offsetMinutes: 30,
+    label: "–30 min",
+    lastUpdated: new Date(_now - 30 * 60 * 1000).toISOString(),
+    intervalMinutes: 15,
+    levels: { critical: 148, warning: 55, minor: 35, clear: 5, error: 4 },
+  },
+  {
+    offsetMinutes: 45,
+    label: "–45 min",
+    lastUpdated: new Date(_now - 45 * 60 * 1000).toISOString(),
+    intervalMinutes: 15,
+    levels: { critical: 131, warning: 49, minor: 28, clear: 7, error: 6 },
+  },
+  {
+    offsetMinutes: 60,
+    label: "–60 min",
+    lastUpdated: new Date(_now - 60 * 60 * 1000).toISOString(),
+    intervalMinutes: 15,
+    levels: { critical: 112, warning: 41, minor: 22, clear: 9, error: 8 },
+  },
+];
 
 // ─── Correlation clusters (top 5 non-resolved incidents as AI-grouped clusters) ───
 

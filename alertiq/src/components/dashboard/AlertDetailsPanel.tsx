@@ -180,7 +180,6 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2, ease: "easeInOut" }}
-                  style={{ overflow: "hidden" }}
                 >
                   {rows.length === 0 ? (
                     <div
@@ -195,61 +194,76 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
                         : "No active incidents in this level"}
                     </div>
                   ) : (
-                    rows.map((inc) => (
-                      <button
-                        key={inc.id}
-                        onClick={() => onSelect(inc.id)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          width: "100%",
-                          padding: "8px 20px 8px 36px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          transition: "background 0.1s",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                            "var(--color-hover-bg)";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                            "transparent";
-                        }}
-                      >
-                        <AlertTriangle
-                          style={{ width: 10, height: 10, color: cfg.color, flexShrink: 0 }}
-                        />
-                        <span
-                          style={{
-                            flex: 1,
-                            fontSize: 12,
-                            color: "var(--color-text-primary)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {inc.name}
-                        </span>
-                        <span
+                    <>
+                      {rows.length > 4 && (
+                        <div style={{ padding: "3px 20px 2px 36px", fontSize: 10, color: "var(--color-text-muted)", fontWeight: 600 }}>
+                          {rows.length} incidents
+                        </div>
+                      )}
+                    <div
+                      style={{
+                        maxHeight: rows.length > 4 ? 152 : undefined,
+                        overflowY: rows.length > 4 ? "auto" : "visible",
+                        overflowX: "hidden",
+                      }}
+                    >
+                      {rows.map((inc) => (
+                        <button
+                          key={inc.id}
+                          onClick={() => onSelect(inc.id)}
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 3,
-                            fontSize: 10,
-                            color: "var(--color-text-muted)",
-                            flexShrink: 0,
+                            gap: 8,
+                            width: "100%",
+                            padding: "8px 20px 8px 36px",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "background 0.1s",
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                              "var(--color-hover-bg)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                              "transparent";
                           }}
                         >
-                          <Clock style={{ width: 9, height: 9 }} />
-                          {formatTime(inc.timestamp)}
-                        </span>
-                      </button>
-                    ))
+                          <AlertTriangle
+                            style={{ width: 10, height: 10, color: cfg.color, flexShrink: 0 }}
+                          />
+                          <span
+                            style={{
+                              flex: 1,
+                              fontSize: 12,
+                              color: "var(--color-text-primary)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {inc.name}
+                          </span>
+                          <span
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              fontSize: 10,
+                              color: "var(--color-text-muted)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Clock style={{ width: 9, height: 9 }} />
+                            {formatTime(inc.timestamp)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    </>
                   )}
                 </motion.div>
               )}

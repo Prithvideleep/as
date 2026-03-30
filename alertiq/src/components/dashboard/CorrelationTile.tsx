@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, AlertOctagon, Server, GitBranch, Link2, Info, CheckCircle2 } from "lucide-react";
+import { ChevronDown, AlertOctagon, Server, GitBranch, Link2, Info, CheckCircle2, ArrowRight } from "lucide-react";
 import type { CorrelationCluster } from "../../data/mockData";
 
 const SEV_COLOR: Record<string, string> = {
@@ -20,9 +20,10 @@ interface Props {
   clusters: CorrelationCluster[];
   onSelect: (id: string) => void;
   mode?: "live" | "archive";
+  style?: React.CSSProperties;
 }
 
-export default function CorrelationTile({ clusters, onSelect, mode = "live" }: Props) {
+export default function CorrelationTile({ clusters, onSelect, mode = "live", style }: Props) {
   const [expanded, setExpanded] = useState<string | null>(clusters[0]?.incidentId ?? null);
 
   return (
@@ -32,6 +33,9 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live" }: P
         borderRadius: 14,
         border: "1px solid var(--color-border)",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        ...style,
       }}
     >
       {/* Tile header */}
@@ -60,7 +64,7 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live" }: P
       </div>
 
       {/* Cluster cards */}
-      <div>
+      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
         {clusters.map((cluster, idx) => {
           const isOpen = expanded === cluster.incidentId;
           const color = SEV_COLOR[cluster.severity] ?? "#6B7280";
@@ -157,6 +161,37 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live" }: P
                     {cluster.impactedL1.length} services
                   </span>
                 </span>
+
+                {/* Direct investigate / view link — no need to expand first */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSelect(cluster.incidentId); }}
+                  title={mode === "archive" ? "View resolution" : "Open investigation"}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    border: `1px solid ${color}35`,
+                    backgroundColor: `${color}10`,
+                    color,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    transition: "all 0.15s",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${color}20`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = `${color}10`;
+                  }}
+                >
+                  {mode === "archive" ? "View" : "Investigate"}
+                  <ArrowRight style={{ width: 9, height: 9 }} />
+                </button>
 
                 <ChevronDown
                   style={{

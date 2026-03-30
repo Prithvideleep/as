@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronRight, ChevronDown, Server, AlertOctagon, X } from "lucide-react";
 import type { Incident, IncidentDetail, BlastRadiusItem } from "../../data/mockData";
@@ -90,16 +90,22 @@ interface Props {
   lastUpdated:     string;
 }
 
-const SVC_PAGE_SIZE = 5;
+// Estimate of the top-level service row height (used to compute how many rows fit)
+const EST_SVC_ROW_HEIGHT_PX = 44;
+const MIN_SVC_PAGE_SIZE = 3;
+const DEFAULT_SVC_PAGE_SIZE = 5;
 
 export default function IncidentTile({ incidents, incidentDetails, onSelect, lastUpdated }: Props) {
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [svcPage, setSvcPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_SVC_PAGE_SIZE);
+
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   const active      = incidents.filter((i) => i.status !== "resolved");
   const services    = buildImpactedServices(active, incidentDetails);
-  const totalSvcPages = Math.max(1, Math.ceil(services.length / SVC_PAGE_SIZE));
-  const pageServices  = services.slice((svcPage - 1) * SVC_PAGE_SIZE, svcPage * SVC_PAGE_SIZE);
+  const totalSvcPages = Math.max(1, Math.ceil(services.length / pageSize));
+  const pageServices  = services.slice((svcPage - 1) * pageSize, svcPage * pageSize);
 
   const criticalCount = services.filter((s) => s.topSeverity === "critical").length;
   const highCount     = services.filter((s) => s.topSeverity === "high").length;
@@ -107,6 +113,33 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
   function toggleService(name: string) {
     setExpandedService((prev) => (prev === name ? null : name));
   }
+
+  // Dynamically compute how many service rows fit in the scroll area.
+  // This keeps the list dense when the Correlation Tile expands, and reduces it when the card collapses.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    if (typeof ResizeObserver === "undefined") return;
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const h = entry.contentRect.height;
+      // Defensive: if height is too small/undefined, keep current
+      if (!h || h <= 0) return;
+
+      const next = Math.max(MIN_SVC_PAGE_SIZE, Math.floor(h / EST_SVC_ROW_HEIGHT_PX));
+      setPageSize((prev) => (prev === next ? prev : next));
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // When pageSize changes (due to expand/collapse), go back to page 1 so pagination stays valid.
+  useEffect(() => {
+    setSvcPage(1);
+  }, [pageSize]);
 
   return (
     <div
@@ -194,7 +227,7 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
       </div>
 
       {/* Service rows */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
         {pageServices.length === 0 ? (
           <div style={{ padding: "18px 16px", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center" }}>
             No impacted services detected
