@@ -5,7 +5,6 @@ import {
   Network,
   MessageSquare,
   ShieldAlert,
-  History,
 } from "lucide-react";
 
 const SIDEBAR_BG   = "#1C1C28";
@@ -18,7 +17,6 @@ const HOVER_COLOR  = "rgba(255,255,255,0.9)";
 
 const navItems = [
   { to: "/",              icon: LayoutDashboard, label: "Dashboard"    },
-  { to: "/history",       icon: History,         label: "History"      },
   { to: "/investigation", icon: Search,          label: "Investigation"},
   { to: "/topology",      icon: Network,         label: "Topology"     },
   { to: "/chat",          icon: MessageSquare,   label: "Triage"       },
