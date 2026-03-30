@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronRight, ChevronDown, Server, AlertOctagon, X } from "lucide-react";
 import type { Incident, IncidentDetail, BlastRadiusItem } from "../../data/mockData";
@@ -88,24 +88,30 @@ interface Props {
   incidentDetails: Record<string, IncidentDetail>;
   onSelect:        (id: string) => void;
   lastUpdated:     string;
+  /** Pinned header + summary, scrollable list + max height (dashboard sticky sidebar). */
+  layout?:         "default" | "sidebar";
+  /** Cap card height when layout is sidebar; keeps card within viewport below sticky offset. */
+  sidebarMaxHeight?: string;
 }
 
-// Estimate of the top-level service row height (used to compute how many rows fit)
-const EST_SVC_ROW_HEIGHT_PX = 44;
-const MIN_SVC_PAGE_SIZE = 3;
-const DEFAULT_SVC_PAGE_SIZE = 5;
+const SVC_PAGE_SIZE = 5;
 
-export default function IncidentTile({ incidents, incidentDetails, onSelect, lastUpdated }: Props) {
+export default function IncidentTile({
+  incidents,
+  incidentDetails,
+  onSelect,
+  lastUpdated,
+  layout = "default",
+  sidebarMaxHeight = "calc(100dvh - 64px)",
+}: Props) {
+  const isSidebar = layout === "sidebar";
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [svcPage, setSvcPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_SVC_PAGE_SIZE);
-
-  const listRef = useRef<HTMLDivElement | null>(null);
 
   const active      = incidents.filter((i) => i.status !== "resolved");
   const services    = buildImpactedServices(active, incidentDetails);
-  const totalSvcPages = Math.max(1, Math.ceil(services.length / pageSize));
-  const pageServices  = services.slice((svcPage - 1) * pageSize, svcPage * pageSize);
+  const totalSvcPages = Math.max(1, Math.ceil(services.length / SVC_PAGE_SIZE));
+  const pageServices  = services.slice((svcPage - 1) * SVC_PAGE_SIZE, svcPage * SVC_PAGE_SIZE);
 
   const criticalCount = services.filter((s) => s.topSeverity === "critical").length;
   const highCount     = services.filter((s) => s.topSeverity === "high").length;
@@ -113,33 +119,6 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
   function toggleService(name: string) {
     setExpandedService((prev) => (prev === name ? null : name));
   }
-
-  // Dynamically compute how many service rows fit in the scroll area.
-  // This keeps the list dense when the Correlation Tile expands, and reduces it when the card collapses.
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    if (typeof ResizeObserver === "undefined") return;
-
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      const h = entry.contentRect.height;
-      // Defensive: if height is too small/undefined, keep current
-      if (!h || h <= 0) return;
-
-      const next = Math.max(MIN_SVC_PAGE_SIZE, Math.floor(h / EST_SVC_ROW_HEIGHT_PX));
-      setPageSize((prev) => (prev === next ? prev : next));
-    });
-
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // When pageSize changes (due to expand/collapse), go back to page 1 so pagination stays valid.
-  useEffect(() => {
-    setSvcPage(1);
-  }, [pageSize]);
 
   return (
     <div
@@ -150,14 +129,18 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        flex: 1,
+        flex: isSidebar ? "0 1 auto" : 1,
+        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
         width: "100%",
+        justifyContent: "flex-start",
+        minHeight: 0,
       }}
     >
-      {/* Header */}
+      {/* Header — always visible in sidebar layout (not inside scroll region) */}
       <div
         style={{
+          flexShrink: 0,
           padding: "18px 20px 10px",
           borderBottom: "1px solid var(--color-border)",
           display: "flex",
@@ -189,9 +172,10 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         </div>
       </div>
 
-      {/* Summary chips */}
+      {/* Summary chips — pinned with header when layout=sidebar */}
       <div
         style={{
+          flexShrink: 0,
           display: "flex",
           gap: 8,
           padding: "8px 20px",
@@ -226,8 +210,14 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         </span>
       </div>
 
-      {/* Service rows */}
-      <div ref={listRef} style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+      {/* Service rows — sidebar: fill remaining height and scroll; default: natural height */}
+      <div
+        style={
+          isSidebar
+            ? { flex: "1 1 auto", minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }
+            : { flex: "0 0 auto", overflowY: "visible" }
+        }
+      >
         {pageServices.length === 0 ? (
           <div style={{ padding: "18px 16px", fontSize: 12, color: "var(--color-text-muted)", textAlign: "center" }}>
             No impacted services detected
@@ -453,9 +443,11 @@ export default function IncidentTile({ incidents, incidentDetails, onSelect, las
         )}
       </div>
 
-      {/* Footer — pagination */}
+      {/* Footer — pagination (flex-shrink 0, sits directly under list) */}
       <div
         style={{
+          flexShrink: 0,
+          flex: "0 0 auto",
           borderTop: "1px solid var(--color-border)",
           padding: "7px 14px",
           display: "flex",

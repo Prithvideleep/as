@@ -80,10 +80,19 @@ interface Props {
   onSelect: (id: string) => void;
   /** "live" (default) shows non-resolved; "archive" shows pre-filtered resolved window */
   mode?: "live" | "archive";
+  layout?: "default" | "sidebar";
+  sidebarMaxHeight?: string;
 }
 
-export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }: Props) {
+export default function AlertDetailsPanel({
+  incidents,
+  onSelect,
+  mode = "live",
+  layout = "default",
+  sidebarMaxHeight = "calc(100dvh - 64px)",
+}: Props) {
   const [open, setOpen] = useState<LevelKey | null>(mode === "archive" ? "clear" : "critical");
+  const isSidebar = layout === "sidebar";
 
   return (
     <div
@@ -91,13 +100,23 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
         backgroundColor: "var(--color-bg-card)",
         borderRadius: 14,
         border: "1px solid var(--color-border)",
-        flex: 1,
+        flex: isSidebar ? "0 1 auto" : 1,
+        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
+        minHeight: 0,
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Header */}
-      <div style={{ padding: "18px 20px 10px", borderBottom: "1px solid var(--color-border)" }}>
+      {/* Header — pinned in sidebar layout */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: "18px 20px 10px",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
           Alert Details
         </span>
@@ -108,7 +127,14 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
         </p>
       </div>
 
-      {/* Accordion rows */}
+      {/* Accordion rows — outer scroll in sidebar layout */}
+      <div
+        style={
+          isSidebar
+            ? { flex: "1 1 auto", minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }
+            : undefined
+        }
+      >
       {LEVEL_CONFIG.map((cfg) => {
         const rows = getIncidentsForLevel(incidents, cfg, mode);
         const isOpen = open === cfg.key;
@@ -202,8 +228,8 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
                       )}
                     <div
                       style={{
-                        maxHeight: rows.length > 4 ? 152 : undefined,
-                        overflowY: rows.length > 4 ? "auto" : "visible",
+                        maxHeight: isSidebar ? undefined : rows.length > 4 ? 152 : undefined,
+                        overflowY: isSidebar ? "visible" : rows.length > 4 ? "auto" : "visible",
                         overflowX: "hidden",
                       }}
                     >
@@ -271,6 +297,7 @@ export default function AlertDetailsPanel({ incidents, onSelect, mode = "live" }
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -79,92 +79,117 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
               }}
             >
               {/* Cluster header row */}
-              <button
-                onClick={() => setExpanded(isOpen ? null : cluster.incidentId)}
+              <div
                 style={{
                   width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "14px 20px 14px 17px",
+                  gap: 10,
+                  padding: "0 12px 0 0",
                   background: isOpen ? `${color}06` : "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
                   transition: "background 0.12s",
                 }}
               >
-                {/* Severity badge */}
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.06em",
-                    color,
-                    backgroundColor: `${color}15`,
-                    padding: "2px 7px",
-                    borderRadius: 999,
-                    flexShrink: 0,
-                  }}
-                >
-                  {SEV_LABEL[cluster.severity] ?? cluster.severity.toUpperCase()}
-                </span>
-
-                {/* Incident name */}
-                <span
+                {/* Expand/collapse button (no nested buttons inside) */}
+                <button
+                  onClick={() => setExpanded(isOpen ? null : cluster.incidentId)}
                   style={{
                     flex: 1,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "var(--color-text-primary)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {cluster.incidentName}
-                </span>
-
-                {/* Counts + resolved badge */}
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "var(--color-text-muted)",
-                    flexShrink: 0,
                     display: "flex",
-                    gap: 10,
                     alignItems: "center",
+                    gap: 12,
+                    padding: "14px 8px 14px 17px",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    minWidth: 0,
                   }}
                 >
-                  {cluster.resolutionSummary && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: "0.05em",
-                        color: "#22C55E",
-                        backgroundColor: "rgba(34,197,94,0.12)",
-                        padding: "2px 7px",
-                        borderRadius: 999,
-                        flexShrink: 0,
-                      }}
-                    >
-                      RESOLVED
-                    </span>
-                  )}
-                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <AlertOctagon style={{ width: 10, height: 10 }} />
-                    {cluster.relatedAlerts.length} alerts
+                  {/* Severity badge */}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      color,
+                      backgroundColor: `${color}15`,
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {SEV_LABEL[cluster.severity] ?? cluster.severity.toUpperCase()}
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <Server style={{ width: 10, height: 10 }} />
-                    {cluster.impactedL1.length} services
-                  </span>
-                </span>
 
-                {/* Direct investigate / view link — no need to expand first */}
+                  {/* Incident name */}
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "var(--color-text-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      minWidth: 0,
+                    }}
+                  >
+                    {cluster.incidentName}
+                  </span>
+
+                  {/* Counts + resolved badge */}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--color-text-muted)",
+                      flexShrink: 0,
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    {cluster.resolutionSummary && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          letterSpacing: "0.05em",
+                          color: "#22C55E",
+                          backgroundColor: "rgba(34,197,94,0.12)",
+                          padding: "2px 7px",
+                          borderRadius: 999,
+                          flexShrink: 0,
+                        }}
+                      >
+                        RESOLVED
+                      </span>
+                    )}
+                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <AlertOctagon style={{ width: 10, height: 10 }} />
+                      {cluster.relatedAlerts.length} alerts
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <Server style={{ width: 10, height: 10 }} />
+                      {cluster.impactedL1.length} services
+                    </span>
+                  </span>
+
+                  <ChevronDown
+                    style={{
+                      width: 14,
+                      height: 14,
+                      color: "var(--color-text-muted)",
+                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s",
+                      flexShrink: 0,
+                    }}
+                  />
+                </button>
+
+                {/* Direct investigate / view link — separate sibling button */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); onSelect(cluster.incidentId); }}
+                  onClick={() => onSelect(cluster.incidentId)}
                   title={mode === "archive" ? "View resolution" : "Open investigation"}
                   style={{
                     display: "flex",
@@ -192,18 +217,7 @@ export default function CorrelationTile({ clusters, onSelect, mode = "live", sty
                   {mode === "archive" ? "View" : "Investigate"}
                   <ArrowRight style={{ width: 9, height: 9 }} />
                 </button>
-
-                <ChevronDown
-                  style={{
-                    width: 14,
-                    height: 14,
-                    color: "var(--color-text-muted)",
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s",
-                    flexShrink: 0,
-                  }}
-                />
-              </button>
+              </div>
 
               {/* Expanded detail */}
               <AnimatePresence initial={false}>

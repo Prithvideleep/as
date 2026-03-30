@@ -31,27 +31,40 @@ interface Props {
   periodLabel?: string;
   /** Number of incidents in the window (shown in archive mode subtitle) */
   windowCount?: number;
+  layout?: "default" | "sidebar";
+  sidebarMaxHeight?: string;
 }
 
-export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, windowCount }: Props) {
+export default function AlertLevelBar({
+  snapshot,
+  onRefresh,
+  periodLabel,
+  windowCount,
+  layout = "default",
+  sidebarMaxHeight = "calc(100dvh - 64px)",
+}: Props) {
   const max = Math.max(...Object.values(snapshot.levels), 1);
+  const isSidebar = layout === "sidebar";
 
   return (
     <div
       style={{
         backgroundColor: "var(--color-bg-card)",
         borderRadius: 14,
-        padding: "18px 20px",
+        padding: isSidebar ? "18px 20px 14px" : "18px 20px",
         border: "1px solid var(--color-border)",
-        flex: 1,
+        flex: isSidebar ? "0 1 auto" : 1,
+        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,
+        minHeight: 0,
         width: "100%",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+      {/* Header — pinned in sidebar layout */}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
           Alert Level
         </span>
@@ -74,15 +87,26 @@ export default function AlertLevelBar({ snapshot, onRefresh, periodLabel, window
           </button>
         )}
       </div>
-      <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 16 }}>
+      <p style={{ flexShrink: 0, fontSize: 11, color: "var(--color-text-muted)", marginBottom: isSidebar ? 12 : 16 }}>
         {periodLabel
           ? <>Period: {periodLabel} &nbsp;·&nbsp; {windowCount ?? 0} incident{windowCount === 1 ? "" : "s"} reviewed</>
           : <>Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp; Updated {formatTimestamp(snapshot.lastUpdated)}</>
         }
       </p>
 
-      {/* Horizontal bar rows — one per level, stacked vertically */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, justifyContent: "space-between" }}>
+      {/* Horizontal bar rows — scrollable when sidebar + limited height */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          flex: isSidebar ? "1 1 auto" : 1,
+          minHeight: isSidebar ? 0 : undefined,
+          overflowY: isSidebar ? "auto" : "visible",
+          overscrollBehavior: isSidebar ? "contain" : undefined,
+          justifyContent: isSidebar ? "flex-start" : "space-between",
+        }}
+      >
         {LEVELS.map((lv, idx) => {
           const val = snapshot.levels[lv.key];
           const targetPct = val === 0 ? 0 : Math.max((val / max) * 100, 3);
