@@ -42,6 +42,8 @@ interface Props {
   sidebarMaxHeight?: string;
   /** Karun/Gary: demote Clear + Error on home — bars hidden (counts still in raw snapshot). */
   demoteClearAndError?: boolean;
+  /** Nested inside unified dashboard column — no outer card frame */
+  embedded?: boolean;
 }
 
 export default function AlertLevelBar({
@@ -52,6 +54,7 @@ export default function AlertLevelBar({
   layout = "default",
   sidebarMaxHeight = "calc(100dvh - 64px)",
   demoteClearAndError = true,
+  embedded = false,
 }: Props) {
   const isSidebar = layout === "sidebar";
   const displayLevels = demoteClearAndError
@@ -65,10 +68,10 @@ export default function AlertLevelBar({
   return (
     <div
       style={{
-        backgroundColor: "var(--color-bg-card)",
-        borderRadius: 14,
-        padding: isSidebar ? "18px 20px 14px" : "18px 20px",
-        border: "1px solid var(--color-border)",
+        backgroundColor: embedded ? "var(--color-bg-primary)" : "var(--color-bg-card)",
+        borderRadius: embedded ? 0 : 14,
+        padding: embedded ? "12px 20px 14px" : isSidebar ? "18px 20px 14px" : "18px 20px",
+        border: embedded ? "none" : "1px solid var(--color-border)",
         flex: isSidebar ? "0 1 auto" : "0 1 auto",
         maxHeight: isSidebar ? sidebarMaxHeight : undefined,
         minWidth: 0,

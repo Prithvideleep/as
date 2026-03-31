@@ -26,6 +26,8 @@ interface Props {
   /** When nonce changes with this id, scroll row into view and expand. */
   scrollToIncidentId?: string | null;
   scrollRequestNonce?: number;
+  /** Fires when a cluster is expanded or collapsed — drives Alert Details / level sync on the dashboard. */
+  onClusterFocusChange?: (state: { incidentId: string; cluster: CorrelationCluster } | null) => void;
 }
 
 export default function CorrelationTile({
@@ -36,6 +38,7 @@ export default function CorrelationTile({
   highlightIncidentId = null,
   scrollToIncidentId = null,
   scrollRequestNonce = 0,
+  onClusterFocusChange,
 }: Props) {
   const [expanded, setExpanded] = useState<string | null>(clusters[0]?.incidentId ?? null);
   const lastScrollNonce = useRef(0);
@@ -44,11 +47,13 @@ export default function CorrelationTile({
     if (!scrollToIncidentId || scrollRequestNonce === lastScrollNonce.current) return;
     lastScrollNonce.current = scrollRequestNonce;
     setExpanded(scrollToIncidentId);
+    const cl = clusters.find((c) => c.incidentId === scrollToIncidentId);
+    if (cl) onClusterFocusChange?.({ incidentId: scrollToIncidentId, cluster: cl });
     requestAnimationFrame(() => {
       const el = document.getElementById(`cluster-anchor-${scrollToIncidentId}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
-  }, [scrollToIncidentId, scrollRequestNonce]);
+  }, [scrollToIncidentId, scrollRequestNonce, clusters, onClusterFocusChange]);
 
   return (
     <div
@@ -87,7 +92,7 @@ export default function CorrelationTile({
         </div>
       </div>
 
-      {/* Cluster cards — height from content; parent column scrolls (avoids nested scroll) */}
+      {/* Cluster rows — expanded body is height-capped with internal scroll */}
       <div style={{ flex: "0 0 auto", overflow: "visible" }}>
         <LayoutGroup>
         {clusters.map((cluster, idx) => {
@@ -123,7 +128,15 @@ export default function CorrelationTile({
               >
                 {/* Expand/collapse button (no nested buttons inside) */}
                 <button
-                  onClick={() => setExpanded(isOpen ? null : cluster.incidentId)}
+                  onClick={() => {
+                    if (isOpen) {
+                      setExpanded(null);
+                      onClusterFocusChange?.(null);
+                    } else {
+                      setExpanded(cluster.incidentId);
+                      onClusterFocusChange?.({ incidentId: cluster.incidentId, cluster });
+                    }
+                  }}
                   style={{
                     flex: 1,
                     display: "flex",
@@ -304,18 +317,20 @@ export default function CorrelationTile({
                 {isOpen && (
                   <motion.div
                     layout
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{
-                      height: { duration: 0.32, ease: [0.4, 0, 0.2, 1] },
-                      opacity: { duration: 0.22 },
-                      layout: { duration: 0.28, ease: [0.4, 0, 0.2, 1] },
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ opacity: { duration: 0.2 }, layout: { duration: 0.24, ease: [0.4, 0, 0.2, 1] } }}
+                    style={{
+                      borderTop: "1px solid var(--color-border)",
+                      background: `linear-gradient(180deg, ${color}06 0%, transparent 48px)`,
                     }}
-                    style={{ overflow: "hidden" }}
                   >
                     <div
                       style={{
+                        maxHeight: 280,
+                        overflowY: "auto",
+                        overscrollBehavior: "contain",
                         padding: "4px 18px 16px 18px",
                         display: "flex",
                         flexDirection: "column",

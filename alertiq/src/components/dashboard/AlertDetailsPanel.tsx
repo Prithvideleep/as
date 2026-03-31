@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Incident } from "../../data/mockData";
@@ -94,6 +94,12 @@ interface Props {
   onLevelOpenChange?: (key: LevelKey | null) => void;
   /** Shown under title — e.g. global time window note */
   timeWindowNote?: string;
+  /** Inside a unified dashboard column: no outer card chrome */
+  embedded?: boolean;
+  /** When set (e.g. from Correlation Tile), opens this severity accordion */
+  syncOpenLevel?: LevelKey | null;
+  /** Highlight this incident row and scroll it into view when expanded */
+  highlightIncidentId?: string | null;
 }
 
 export default function AlertDetailsPanel({
@@ -107,6 +113,9 @@ export default function AlertDetailsPanel({
   demoteLowSignalLevels = true,
   onLevelOpenChange,
   timeWindowNote,
+  embedded = false,
+  syncOpenLevel = null,
+  highlightIncidentId = null,
 }: Props) {
   const visibleLevels = useMemo(
     () =>
@@ -123,12 +132,54 @@ export default function AlertDetailsPanel({
     Object.fromEntries(LEVEL_CONFIG.map((c) => [c.key, 1])) as Record<LevelKey, number>
   );
   const isSidebar = layout === "sidebar";
+  const lastClusterSyncSig = useRef<string | null>(null);
 
   useEffect(() => {
     if (open && !visibleLevels.some((c) => c.key === open)) {
       setOpen(visibleLevels[0]?.key ?? "critical");
     }
   }, [open, visibleLevels]);
+
+  useEffect(() => {
+    if (syncOpenLevel == null) {
+      lastClusterSyncSig.current = null;
+      return;
+    }
+    if (!visibleLevels.some((c) => c.key === syncOpenLevel)) return;
+    const sig = `${syncOpenLevel}:${highlightIncidentId ?? ""}`;
+    if (lastClusterSyncSig.current === sig) return;
+    lastClusterSyncSig.current = sig;
+
+    setOpen(syncOpenLevel);
+    const cfg = LEVEL_CONFIG.find((c) => c.key === syncOpenLevel);
+    if (cfg && highlightIncidentId) {
+      const rows = getIncidentsForLevel(incidents, cfg, mode);
+      const idx = rows.findIndex((i) => i.id === highlightIncidentId);
+      if (idx >= 0) {
+        const pg = Math.floor(idx / levelPageSize) + 1;
+        setPageByLevel((p) => ({ ...p, [syncOpenLevel]: pg }));
+      } else {
+        setPageByLevel((p) => ({ ...p, [syncOpenLevel]: 1 }));
+      }
+    } else {
+      setPageByLevel((p) => ({ ...p, [syncOpenLevel]: 1 }));
+    }
+    onLevelOpenChange?.(syncOpenLevel);
+  }, [
+    syncOpenLevel,
+    highlightIncidentId,
+    visibleLevels,
+    incidents,
+    mode,
+    levelPageSize,
+    onLevelOpenChange,
+  ]);
+
+  useLayoutEffect(() => {
+    if (!highlightIncidentId || open == null) return;
+    const el = document.querySelector(`[data-alert-detail-incident="${highlightIncidentId}"]`);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [highlightIncidentId, open]);
 
   const setLevelPage = useCallback((key: LevelKey, page: number) => {
     setPageByLevel((prev) => ({ ...prev, [key]: page }));
@@ -151,13 +202,13 @@ export default function AlertDetailsPanel({
   return (
     <div
       style={{
-        backgroundColor: "var(--color-bg-card)",
-        borderRadius: 14,
-        border: "1px solid var(--color-border)",
-        flex: isSidebar ? "0 1 auto" : "0 1 auto",
-        maxHeight: isSidebar ? sidebarMaxHeight : undefined,
+        backgroundColor: embedded ? "transparent" : "var(--color-bg-card)",
+        borderRadius: embedded ? 0 : 14,
+        border: embedded ? "none" : "1px solid var(--color-border)",
+        flex: isSidebar ? "0 1 auto" : embedded ? "1 1 auto" : "0 1 auto",
+        maxHeight: isSidebar ? sidebarMaxHeight : embedded ? undefined : undefined,
         minWidth: 0,
-        minHeight: isSidebar ? 0 : undefined,
+        minHeight: embedded ? 0 : isSidebar ? 0 : undefined,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -168,7 +219,7 @@ export default function AlertDetailsPanel({
         style={{
           flexShrink: 0,
           padding: "18px 20px 10px",
-          borderBottom: "1px solid var(--color-border)",
+          borderBottom: embedded ? "1px solid var(--color-border)" : "1px solid var(--color-border)",
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
@@ -183,8 +234,9 @@ export default function AlertDetailsPanel({
 
       <div
         style={{
-          flex: 1,
-          minHeight: 0,
+          flex: embedded ? "1 1 auto" : 1,
+          minHeight: embedded ? 120 : 0,
+          maxHeight: embedded ? 320 : undefined,
           overflowY: "auto",
           overscrollBehavior: "contain",
         }}
@@ -259,10 +311,14 @@ export default function AlertDetailsPanel({
             <AnimatePresence initial={false}>
               {isOpen && (
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  style={{
+                    borderTop: "1px solid var(--color-border)",
+                    background: isOpen ? `${cfg.color}04` : undefined,
+                  }}
                 >
                   {rows.length === 0 ? (
                     <div
@@ -304,32 +360,53 @@ export default function AlertDetailsPanel({
                                 {showPager ? ` · Page ${page} of ${totalPages}` : ""}
                               </span>
                             </div>
-                            <div style={{ overflowX: "hidden" }}>
-                              {pageRows.map((inc) => (
-                        <button
+                            <div
+                              style={{
+                                maxHeight: 220,
+                                overflowY: "auto",
+                                overflowX: "hidden",
+                                overscrollBehavior: "contain",
+                              }}
+                            >
+                              {pageRows.map((inc) => {
+                                const isLinked = highlightIncidentId === inc.id;
+                                return (
+                        <motion.button
                           key={inc.id}
+                          layout
+                          data-alert-detail-incident={inc.id}
                           onClick={() =>
                             onPreviewIncident ? onPreviewIncident(inc.id) : onSelect(inc.id)
                           }
+                          initial={false}
+                          animate={
+                            isLinked
+                              ? {
+                                  scale: 1.01,
+                                  boxShadow: `0 0 0 1px ${cfg.color}55, 0 4px 14px ${cfg.color}22`,
+                                }
+                              : { scale: 1, boxShadow: "0 0 0 0px transparent" }
+                          }
+                          transition={{ type: "spring", stiffness: 420, damping: 28 }}
                           style={{
                             display: "flex",
                             alignItems: "center",
                             gap: 8,
                             width: "100%",
                             padding: "8px 20px 8px 36px",
-                            background: "none",
                             border: "none",
+                            borderRadius: 8,
                             cursor: "pointer",
                             textAlign: "left",
-                            transition: "background 0.1s",
+                            backgroundColor: isLinked ? `${cfg.color}14` : "transparent",
                           }}
                           onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                              "var(--color-hover-bg)";
+                            const t = e.currentTarget as HTMLButtonElement;
+                            t.style.backgroundColor = isLinked ? `${cfg.color}1c` : "var(--color-hover-bg)";
                           }}
                           onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                              "transparent";
+                            const t = e.currentTarget as HTMLButtonElement;
+                            t.style.backgroundColor = isLinked ? `${cfg.color}14` : "transparent";
                           }}
                         >
                           <AlertTriangle
@@ -360,8 +437,9 @@ export default function AlertDetailsPanel({
                             <Clock style={{ width: 9, height: 9 }} />
                             {formatTime(inc.timestamp)}
                           </span>
-                        </button>
-                              ))}
+                        </motion.button>
+                                );
+                              })}
                             </div>
                             {showPager && (
                               <div

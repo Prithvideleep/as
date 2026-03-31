@@ -103,12 +103,10 @@ interface Props {
   lastUpdated:     string;
   /** Pinned header + summary; sidebar list flows with rail scroll. */
   layout?:         "default" | "sidebar";
-  /** Row highlight when linked from correlation focus (sidebar). */
+  /** Row highlight (optional; e.g. external focus). */
   highlightedService?: string | null;
   /** Multiple rows highlighted (e.g. critical-level linkage from Alert Details). */
   highlightedServices?: string[] | null;
-  /** When expanding a service, parent can scroll/highlight matching cluster. */
-  onServiceActivate?: (service: string) => void;
 }
 
 const SVC_PAGE_SIZE = 5;
@@ -121,7 +119,6 @@ export default function IncidentTile({
   layout = "default",
   highlightedService = null,
   highlightedServices = null,
-  onServiceActivate,
 }: Props) {
   const isSidebar = layout === "sidebar";
   const [expandedService, setExpandedService] = useState<string | null>(null);
@@ -279,18 +276,6 @@ export default function IncidentTile({
                 </button>
               );
             })}
-            <span
-              style={{
-                fontSize: 9,
-                color: "var(--color-text-muted)",
-                alignSelf: "center",
-                marginLeft: "auto",
-                fontStyle: "italic",
-              }}
-              title="Expand a service to jump to a matching cluster when available"
-            >
-              Link → clusters
-            </span>
           </div>
         )}
       </div>
@@ -324,10 +309,7 @@ export default function IncidentTile({
                 <button
                   type="button"
                   title={svc.impact}
-                  onClick={() => {
-                    if (!isOpen) onServiceActivate?.(svc.service);
-                    toggleService(svc.service);
-                  }}
+                  onClick={() => toggleService(svc.service)}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -411,14 +393,17 @@ export default function IncidentTile({
                 <AnimatePresence initial={false}>
                   {isOpen && (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.18 }}
                       style={{ overflow: "hidden" }}
                     >
                       <div
                         style={{
+                          maxHeight: isSidebar ? 260 : 320,
+                          overflowY: "auto",
+                          overscrollBehavior: "contain",
                           backgroundColor: `${color}05`,
                           borderTop: `1px solid ${color}20`,
                           borderBottom: isLast ? "none" : `1px solid var(--color-border)`,

@@ -61,7 +61,7 @@ export default function DashboardDetailDrawer({
               bottom: 0,
               width: "min(400px, 100vw - 16px)",
               zIndex: 286,
-              backgroundColor: "var(--color-bg-main)",
+              backgroundColor: "var(--color-bg-card)",
               borderLeft: "1px solid var(--color-border)",
               boxShadow: "-8px 0 28px rgba(0,0,0,0.12)",
               display: "flex",

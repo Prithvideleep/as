@@ -11,7 +11,7 @@ import {
   correlationClusters,
   recentSuspectedChanges,
 } from "../data/mockData";
-import type { AlertLevelSnapshot } from "../data/mockData";
+import type { AlertLevelSnapshot, CorrelationCluster } from "../data/mockData";
 import AlertLevelBar from "../components/dashboard/AlertLevelBar";
 import AlertDetailsPanel, { type LevelKey } from "../components/dashboard/AlertDetailsPanel";
 import ResolutionLogPanel from "../components/dashboard/ResolutionLogPanel";
@@ -73,6 +73,13 @@ function formatDashboardClock(iso: string): string {
   return `${abs} · ${rel}`;
 }
 
+function clusterSeverityToLevelKey(sev: string): LevelKey {
+  if (sev === "critical") return "critical";
+  if (sev === "high") return "warning";
+  if (sev === "medium") return "minor";
+  return "minor";
+}
+
 const SECTION_TITLES: Record<DashboardSectionId, string> = {
   correlation: "Top Alert Clusters",
   alerts: "Recent Alerts & alert level",
@@ -88,27 +95,36 @@ export default function DashboardPage() {
   const dashboardWide = useDashboardWideLayout();
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  const [clusterLink, setClusterLink] = useState<{ clusterId: string; service: string } | null>(null);
-  const [clusterScrollNonce, setClusterScrollNonce] = useState(0);
-
   const [previewIncidentId, setPreviewIncidentId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [layoutPrefs, setLayoutPrefs] = useState(loadDashboardLayoutPrefs);
   const [detailLevelOpen, setDetailLevelOpen] = useState<LevelKey | null>(null);
+  const [clusterAlertFocus, setClusterAlertFocus] = useState<{
+    incidentId: string;
+    levelKey: LevelKey;
+  } | null>(null);
+  const [alertsColumnPulse, setAlertsColumnPulse] = useState(false);
 
-  const linkClusterFromService = useCallback((service: string) => {
-    const c = correlationClusters.find((cl) => cl.impactedL1.some((s) => s.service === service));
-    if (c) {
-      setClusterLink({ clusterId: c.incidentId, service });
-      setClusterScrollNonce((n) => n + 1);
-    }
-  }, []);
+  const handleClusterFocusChange = useCallback(
+    (state: { incidentId: string; cluster: CorrelationCluster } | null) => {
+      if (!state) {
+        setClusterAlertFocus(null);
+        return;
+      }
+      setClusterAlertFocus({
+        incidentId: state.incidentId,
+        levelKey: clusterSeverityToLevelKey(state.cluster.severity),
+      });
+    },
+    []
+  );
 
   useEffect(() => {
-    if (!clusterLink) return;
-    const t = window.setTimeout(() => setClusterLink(null), 10000);
+    if (!clusterAlertFocus) return;
+    setAlertsColumnPulse(true);
+    const t = window.setTimeout(() => setAlertsColumnPulse(false), 450);
     return () => window.clearTimeout(t);
-  }, [clusterLink]);
+  }, [clusterAlertFocus?.incidentId]);
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -229,32 +245,80 @@ export default function DashboardPage() {
       <CorrelationTile
         clusters={correlationClusters}
         onSelect={handleSelect}
-        highlightIncidentId={clusterLink?.clusterId ?? null}
-        scrollToIncidentId={clusterLink?.clusterId ?? null}
-        scrollRequestNonce={clusterScrollNonce}
+        onClusterFocusChange={handleClusterFocusChange}
       />
     </div>
   );
 
   const alertsColumnWide = (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: DASH_STACK_GAP, order: layoutPrefs.swapCorrelationColumns ? 1 : 2 }}>
-      <span style={SECTION_LABEL}>Recent Alerts</span>
-      <AlertDetailsPanel
-        incidents={incidents}
-        onSelect={handleSelect}
-        onPreviewIncident={openPreview}
-        onLevelOpenChange={handleLevelOpenChange}
-        timeWindowNote={timeWindowNote}
-        demoteLowSignalLevels
-      />
-      <div>
-        <span style={SECTION_LABEL}>Alert Level</span>
-        <AlertLevelBar
-          snapshot={activeSnapshot}
-          onRefresh={viewOffset === null ? handleRefresh : undefined}
-          demoteClearAndError
-        />
-      </div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        order: layoutPrefs.swapCorrelationColumns ? 1 : 2,
+        width: "100%",
+      }}
+    >
+      <span style={SECTION_LABEL}>Recent alerts</span>
+      <motion.div
+        layout={false}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          width: "100%",
+          borderRadius: 14,
+          border: "1px solid var(--color-border)",
+          backgroundColor: "var(--color-bg-card)",
+          overflow: "hidden",
+        }}
+        initial={false}
+        animate={{
+          boxShadow: alertsColumnPulse
+            ? "0 14px 44px rgba(235, 89, 40, 0.14)"
+            : "0 4px 22px rgba(15, 23, 42, 0.055)",
+          borderColor: alertsColumnPulse ? "rgba(235, 89, 40, 0.36)" : "var(--color-border)",
+        }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <div
+          style={{
+            flex: "1 1 auto",
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <AlertDetailsPanel
+            incidents={incidents}
+            onSelect={handleSelect}
+            onPreviewIncident={openPreview}
+            onLevelOpenChange={handleLevelOpenChange}
+            timeWindowNote={timeWindowNote}
+            demoteLowSignalLevels
+            embedded
+            syncOpenLevel={clusterAlertFocus?.levelKey ?? null}
+            highlightIncidentId={clusterAlertFocus?.incidentId ?? null}
+          />
+        </div>
+        <div
+          style={{
+            flexShrink: 0,
+            borderTop: "1px solid var(--color-border)",
+            padding: "4px 6px 8px",
+            background: "linear-gradient(180deg, rgba(15,23,42,0.04) 0%, transparent 100%)",
+          }}
+        >
+          <AlertLevelBar
+            snapshot={activeSnapshot}
+            onRefresh={viewOffset === null ? handleRefresh : undefined}
+            demoteClearAndError
+            embedded
+          />
+        </div>
+      </motion.div>
     </div>
   );
 
@@ -293,7 +357,11 @@ export default function DashboardPage() {
   const narrowCorrelation = (
     <>
       <span style={SECTION_LABEL}>Top Alert Clusters</span>
-      <CorrelationTile clusters={correlationClusters} onSelect={handleSelect} />
+      <CorrelationTile
+        clusters={correlationClusters}
+        onSelect={handleSelect}
+        onClusterFocusChange={handleClusterFocusChange}
+      />
     </>
   );
 
@@ -307,6 +375,8 @@ export default function DashboardPage() {
         onLevelOpenChange={handleLevelOpenChange}
         timeWindowNote={timeWindowNote}
         demoteLowSignalLevels
+        syncOpenLevel={clusterAlertFocus?.levelKey ?? null}
+        highlightIncidentId={clusterAlertFocus?.incidentId ?? null}
       />
       {alertLevelBlock}
     </>
@@ -318,9 +388,7 @@ export default function DashboardPage() {
       <IncidentTile
         {...impactedTileProps}
         layout="default"
-        highlightedService={clusterLink?.service ?? null}
         highlightedServices={impactedMultiHighlight}
-        onServiceActivate={linkClusterFromService}
       />
     </>
   );
@@ -685,9 +753,7 @@ export default function DashboardPage() {
                 <IncidentTile
                   {...impactedTileProps}
                   layout="sidebar"
-                  highlightedService={clusterLink?.service ?? null}
                   highlightedServices={impactedMultiHighlight}
-                  onServiceActivate={linkClusterFromService}
                 />
               </div>
             </SectionShell>
