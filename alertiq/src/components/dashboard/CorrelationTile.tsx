@@ -82,7 +82,7 @@ export default function CorrelationTile({
           <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2, lineHeight: 1.45 }}>
             {mode === "archive"
               ? "Resolved clusters — key facts and resolution context"
-              : "Top correlated incidents · severity · affected services at a glance"}
+              : "Top correlated incidents · times follow the dashboard header window"}
           </p>
         </div>
       </div>
@@ -94,8 +94,8 @@ export default function CorrelationTile({
           const isOpen = expanded === cluster.incidentId;
           const color = SEV_COLOR[cluster.severity] ?? "#6B7280";
           const isLinked = highlightIncidentId === cluster.incidentId;
-          const servicePreview = cluster.impactedL1.slice(0, 3).map((s) => s.service);
-          const serviceRest = cluster.impactedL1.length - servicePreview.length;
+          const topServices = cluster.impactedL1.slice(0, 3).map((s) => s.service);
+          const serviceRest = cluster.impactedL1.length - topServices.length;
 
           return (
             <div
@@ -210,13 +210,13 @@ export default function CorrelationTile({
                     <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)" }}>
                       Affected
                     </span>
-                    {servicePreview.length === 0 ? (
+                    {topServices.length === 0 ? (
                       <span style={{ fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>
                         No L1 services tagged
                       </span>
                     ) : (
                       <>
-                        {servicePreview.map((name) => (
+                        {topServices.map((name) => (
                           <span
                             key={name}
                             style={{

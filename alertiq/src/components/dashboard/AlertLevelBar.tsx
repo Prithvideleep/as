@@ -19,9 +19,16 @@ function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   const diff = Math.floor((Date.now() - d.getTime()) / 60000);
-  const abs = d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  if (diff <= 1) return `${abs} (just now)`;
-  return `${abs} (${diff} min ago)`;
+  const abs = d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const rel = diff <= 1 ? "just now" : `${diff} min ago`;
+  return `${abs} · ${rel}`;
 }
 
 interface Props {
@@ -33,6 +40,8 @@ interface Props {
   windowCount?: number;
   layout?: "default" | "sidebar";
   sidebarMaxHeight?: string;
+  /** Karun/Gary: demote Clear + Error on home — bars hidden (counts still in raw snapshot). */
+  demoteClearAndError?: boolean;
 }
 
 export default function AlertLevelBar({
@@ -42,9 +51,16 @@ export default function AlertLevelBar({
   windowCount,
   layout = "default",
   sidebarMaxHeight = "calc(100dvh - 64px)",
+  demoteClearAndError = true,
 }: Props) {
-  const max = Math.max(...Object.values(snapshot.levels), 1);
   const isSidebar = layout === "sidebar";
+  const displayLevels = demoteClearAndError
+    ? LEVELS.filter((lv) => lv.key !== "clear" && lv.key !== "error")
+    : LEVELS;
+  const max = Math.max(
+    ...displayLevels.map((lv) => snapshot.levels[lv.key]),
+    1
+  );
 
   return (
     <div
@@ -90,7 +106,11 @@ export default function AlertLevelBar({
       <p style={{ flexShrink: 0, fontSize: 11, color: "var(--color-text-muted)", marginBottom: isSidebar ? 12 : 16 }}>
         {periodLabel
           ? <>Period: {periodLabel} &nbsp;·&nbsp; {windowCount ?? 0} incident{windowCount === 1 ? "" : "s"} reviewed</>
-          : <>Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp; Updated {formatTimestamp(snapshot.lastUpdated)}</>
+          : <>
+              Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp;{" "}
+              <strong style={{ color: "var(--color-text-secondary)", fontWeight: 700 }}>Last updated</strong>{" "}
+              {formatTimestamp(snapshot.lastUpdated)}
+            </>
         }
       </p>
 
@@ -107,7 +127,7 @@ export default function AlertLevelBar({
           justifyContent: isSidebar ? "flex-start" : "flex-start",
         }}
       >
-        {LEVELS.map((lv, idx) => {
+        {displayLevels.map((lv, idx) => {
           const val = snapshot.levels[lv.key];
           const targetPct = val === 0 ? 0 : Math.max((val / max) * 100, 3);
 

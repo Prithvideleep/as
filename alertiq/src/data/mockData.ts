@@ -8,6 +8,8 @@ export interface Incident {
   alertCount: number;
   impactedServices: number;
   timestamp: string;
+  /** Resolution / ops priority when incident is resolved (mock). */
+  resolutionPriority?: "P1" | "P2" | "P3" | "P4";
 }
 
 export interface TimelineEvent {
@@ -130,6 +132,7 @@ export const incidents: Incident[] = [
     alertCount: 5,
     impactedServices: 2,
     timestamp: "2026-03-15T05:15:00Z",
+    resolutionPriority: "P3",
   },
   {
     id: "CL-006",
@@ -166,6 +169,7 @@ export const incidents: Incident[] = [
     alertCount: 7,
     impactedServices: 2,
     timestamp: "2026-03-10T04:30:00Z",
+    resolutionPriority: "P4",
   },
   {
     id: "CL-010",
@@ -202,6 +206,7 @@ export const incidents: Incident[] = [
     alertCount: 8,
     impactedServices: 1,
     timestamp: "2026-02-25T03:50:00Z",
+    resolutionPriority: "P4",
   },
 
   // ── Scroll-test stubs — critical ──────────────────────────────────────────
@@ -220,9 +225,9 @@ export const incidents: Incident[] = [
   { id: "CL-T09", name: "Cron Job Missed Schedule — report-gen",  severity: "medium",   status: "active",        alertCount: 6,  impactedServices: 1,  timestamp: "2026-03-17T06:15:00Z" },
 
   // ── Scroll-test stubs — low (clear) ───────────────────────────────────────
-  { id: "CL-T10", name: "Stale Feature Flag Cleanup Required",    severity: "low",      status: "resolved",      alertCount: 3,  impactedServices: 1,  timestamp: "2026-03-16T14:00:00Z" },
-  { id: "CL-T11", name: "Minor Memory Leak — worker-v2 Sidecar",  severity: "low",      status: "resolved",      alertCount: 4,  impactedServices: 1,  timestamp: "2026-03-15T11:30:00Z" },
-  { id: "CL-T12", name: "Deprecated API Version Still in Use",    severity: "low",      status: "resolved",      alertCount: 2,  impactedServices: 1,  timestamp: "2026-03-14T09:00:00Z" },
+  { id: "CL-T10", name: "Stale Feature Flag Cleanup Required",    severity: "low",      status: "resolved",      alertCount: 3,  impactedServices: 1,  timestamp: "2026-03-16T14:00:00Z", resolutionPriority: "P4" },
+  { id: "CL-T11", name: "Minor Memory Leak — worker-v2 Sidecar",  severity: "low",      status: "resolved",      alertCount: 4,  impactedServices: 1,  timestamp: "2026-03-15T11:30:00Z", resolutionPriority: "P3" },
+  { id: "CL-T12", name: "Deprecated API Version Still in Use",    severity: "low",      status: "resolved",      alertCount: 2,  impactedServices: 1,  timestamp: "2026-03-14T09:00:00Z", resolutionPriority: "P4" },
 ];
 
 // ─── Incident details ───
@@ -1310,6 +1315,101 @@ export const historicalAlertSnapshots: HistoricalAlertSnapshot[] = [
     lastUpdated: new Date(_now - 60 * 60 * 1000).toISOString(),
     intervalMinutes: 15,
     levels: { critical: 112, warning: 41, minor: 22, clear: 9, error: 8 },
+  },
+];
+
+// ─── Suspected changes / deploys (mock — Mohan feedback; no live ServiceNow yet) ───
+
+export interface SuspectedChange {
+  id: string;
+  title: string;
+  service: string;
+  at: string;
+  relatedIncidentIds: string[];
+  /** Shown as primary CTA */
+  rollbackHint: string;
+}
+
+export const recentSuspectedChanges: SuspectedChange[] = [
+  {
+    id: "chg-1",
+    title: "Payment API canary deploy v2.14.3",
+    service: "payment-api",
+    at: "2026-03-17T08:55:00Z",
+    relatedIncidentIds: ["CL-001", "CL-010"],
+    rollbackHint: "Rollback canary to v2.14.2",
+  },
+  {
+    id: "chg-2",
+    title: "Auth token TTL config change",
+    service: "auth-service",
+    at: "2026-03-17T08:10:00Z",
+    relatedIncidentIds: ["CL-002"],
+    rollbackHint: "Revert auth TTL rollout",
+  },
+  {
+    id: "chg-3",
+    title: "LB health-check threshold tightened",
+    service: "edge-gateway",
+    at: "2026-03-17T07:40:00Z",
+    relatedIncidentIds: ["CL-010", "CL-T01"],
+    rollbackHint: "Restore previous threshold",
+  },
+  {
+    id: "chg-4",
+    title: "Redis cluster memory policy update",
+    service: "cache-redis",
+    at: "2026-03-17T06:55:00Z",
+    relatedIncidentIds: ["CL-003"],
+    rollbackHint: "Revert maxmemory policy",
+  },
+  {
+    id: "chg-5",
+    title: "Checkout UI bundle rollout 3.2.0",
+    service: "web-checkout",
+    at: "2026-03-17T06:20:00Z",
+    relatedIncidentIds: [],
+    rollbackHint: "Rollback static assets to 3.1.9",
+  },
+  {
+    id: "chg-6",
+    title: "Kafka consumer parallelism bump",
+    service: "orders-stream",
+    at: "2026-03-17T05:50:00Z",
+    relatedIncidentIds: ["CL-004", "CL-005"],
+    rollbackHint: "Scale consumers back to prior partition map",
+  },
+  {
+    id: "chg-7",
+    title: "DB read replica promotion (drill)",
+    service: "postgres-orders",
+    at: "2026-03-17T04:10:00Z",
+    relatedIncidentIds: ["CL-T02"],
+    rollbackHint: "Fail back to primary",
+  },
+  {
+    id: "chg-8",
+    title: "Feature flag: new tax engine",
+    service: "pricing-service",
+    at: "2026-03-17T03:30:00Z",
+    relatedIncidentIds: ["CL-006"],
+    rollbackHint: "Disable flag in LaunchDarkly",
+  },
+  {
+    id: "chg-9",
+    title: "CDN cache TTL extension",
+    service: "cdn-static",
+    at: "2026-03-17T02:00:00Z",
+    relatedIncidentIds: [],
+    rollbackHint: "Purge and restore previous TTL",
+  },
+  {
+    id: "chg-10",
+    title: "Secrets rotation — API keys",
+    service: "secrets-vault",
+    at: "2026-03-16T22:15:00Z",
+    relatedIncidentIds: ["CL-007", "CL-008"],
+    rollbackHint: "Rotate back to prior key version",
   },
 ];
 

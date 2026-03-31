@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Incident } from "../../data/mockData";
 
-type LevelKey = "critical" | "warning" | "minor" | "clear" | "error";
+export type LevelKey = "critical" | "warning" | "minor" | "clear" | "error";
 
 const LEVEL_CONFIG: {
   key: LevelKey;
@@ -80,31 +80,73 @@ const LEVEL_PAGE_SIZE = 5;
 interface Props {
   incidents: Incident[];
   onSelect: (id: string) => void;
+  /** Row click opens in-dashboard preview instead of navigating when set */
+  onPreviewIncident?: (id: string) => void;
   /** "live" (default) shows non-resolved; "archive" shows pre-filtered resolved window */
   mode?: "live" | "archive";
   layout?: "default" | "sidebar";
   sidebarMaxHeight?: string;
   /** Incidents per page inside each expanded level (default 5) */
   levelPageSize?: number;
+  /** Hide Clear + Error rows on live dashboard (stakeholder direction). */
+  demoteLowSignalLevels?: boolean;
+  /** Fires when user expands/collapses a severity accordion (for Impacted Services linkage). */
+  onLevelOpenChange?: (key: LevelKey | null) => void;
+  /** Shown under title — e.g. global time window note */
+  timeWindowNote?: string;
 }
 
 export default function AlertDetailsPanel({
   incidents,
   onSelect,
+  onPreviewIncident,
   mode = "live",
   layout = "default",
   sidebarMaxHeight = "calc(100dvh - 64px)",
   levelPageSize = LEVEL_PAGE_SIZE,
+  demoteLowSignalLevels = true,
+  onLevelOpenChange,
+  timeWindowNote,
 }: Props) {
-  const [open, setOpen] = useState<LevelKey | null>(mode === "archive" ? "clear" : "critical");
+  const visibleLevels = useMemo(
+    () =>
+      mode === "live" && demoteLowSignalLevels
+        ? LEVEL_CONFIG.filter((c) => c.key !== "clear" && c.key !== "error")
+        : LEVEL_CONFIG,
+    [mode, demoteLowSignalLevels]
+  );
+
+  const [open, setOpen] = useState<LevelKey | null>(() =>
+    mode === "archive" ? "clear" : "critical"
+  );
   const [pageByLevel, setPageByLevel] = useState<Record<LevelKey, number>>(() =>
     Object.fromEntries(LEVEL_CONFIG.map((c) => [c.key, 1])) as Record<LevelKey, number>
   );
   const isSidebar = layout === "sidebar";
 
+  useEffect(() => {
+    if (open && !visibleLevels.some((c) => c.key === open)) {
+      setOpen(visibleLevels[0]?.key ?? "critical");
+    }
+  }, [open, visibleLevels]);
+
   const setLevelPage = useCallback((key: LevelKey, page: number) => {
     setPageByLevel((prev) => ({ ...prev, [key]: page }));
   }, []);
+
+  const toggleLevel = useCallback(
+    (cfgKey: LevelKey, willOpen: boolean) => {
+      if (willOpen) {
+        setPageByLevel((p) => ({ ...p, [cfgKey]: 1 }));
+        setOpen(cfgKey);
+        onLevelOpenChange?.(cfgKey);
+      } else {
+        setOpen(null);
+        onLevelOpenChange?.(null);
+      }
+    },
+    [onLevelOpenChange]
+  );
 
   return (
     <div
@@ -132,10 +174,10 @@ export default function AlertDetailsPanel({
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)" }}>
           Alert Details
         </span>
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2, lineHeight: 1.45 }}>
           {mode === "archive"
             ? "Historical breakdown by level · Click to expand"
-            : "Interval: 15 mins · Click a level to expand"}
+            : timeWindowNote ?? "Uses the same time window as the header control · Click a level to expand"}
         </p>
       </div>
 
@@ -147,7 +189,7 @@ export default function AlertDetailsPanel({
           overscrollBehavior: "contain",
         }}
       >
-      {LEVEL_CONFIG.map((cfg) => {
+      {visibleLevels.map((cfg) => {
         const rows = getIncidentsForLevel(incidents, cfg, mode);
         const isOpen = open === cfg.key;
         return (
@@ -155,11 +197,8 @@ export default function AlertDetailsPanel({
             {/* Row header */}
             <button
               onClick={() => {
-                if (isOpen) setOpen(null);
-                else {
-                  setPageByLevel((p) => ({ ...p, [cfg.key]: 1 }));
-                  setOpen(cfg.key);
-                }
+                if (isOpen) toggleLevel(cfg.key, false);
+                else toggleLevel(cfg.key, true);
               }}
               style={{
                 width: "100%",
@@ -269,7 +308,9 @@ export default function AlertDetailsPanel({
                               {pageRows.map((inc) => (
                         <button
                           key={inc.id}
-                          onClick={() => onSelect(inc.id)}
+                          onClick={() =>
+                            onPreviewIncident ? onPreviewIncident(inc.id) : onSelect(inc.id)
+                          }
                           style={{
                             display: "flex",
                             alignItems: "center",

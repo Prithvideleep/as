@@ -29,7 +29,7 @@ export default function RootCausePanel({ rootCauses }: { rootCauses: RootCause[]
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <Crosshair style={{ width: 15, height: 15, color: "var(--color-text-muted)", flexShrink: 0 }} />
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)", flex: 1 }}>
-          Root Cause Analysis
+          Root cause hypotheses
         </h2>
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
           {rootCauses.length} {rootCauses.length === 1 ? "hypothesis" : "hypotheses"}
@@ -51,8 +51,8 @@ export default function RootCausePanel({ rootCauses }: { rootCauses: RootCause[]
       >
         <FlaskConical style={{ width: 12, height: 12, color: "#F59E0B", flexShrink: 0, marginTop: 1 }} />
         <span style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-          <strong style={{ color: "#F59E0B" }}>Indicative only</strong> — full root cause analysis
-          requires enriched data pipeline integration (Phase 2).
+          <strong style={{ color: "#F59E0B" }}>Indicative only</strong> — not a full RCA. Deeper analysis may live in{" "}
+          <strong>RCA Genie</strong> or similar tools; AlertIQ surfaces ranked hypotheses for triage.
         </span>
       </div>
 

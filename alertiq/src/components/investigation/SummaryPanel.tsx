@@ -20,9 +20,12 @@ export default function SummaryPanel({ summary }: { summary: string }) {
           <FileText style={{ width: 14, height: 14, color: "#EB5928" }} />
         </div>
         <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)" }}>
-          AI Summary
+          Incident summary
         </h2>
       </div>
+      <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0 0 8px", fontStyle: "italic" }}>
+        AI-assisted narrative for operators — confirm against signals and runbooks.
+      </p>
       <p style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.7 }}>{summary}</p>
     </motion.div>
   );

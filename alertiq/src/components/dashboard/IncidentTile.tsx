@@ -76,6 +76,19 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
+function wallClock(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 function minutesAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (diff <= 0) return "just now";
@@ -92,6 +105,8 @@ interface Props {
   layout?:         "default" | "sidebar";
   /** Row highlight when linked from correlation focus (sidebar). */
   highlightedService?: string | null;
+  /** Multiple rows highlighted (e.g. critical-level linkage from Alert Details). */
+  highlightedServices?: string[] | null;
   /** When expanding a service, parent can scroll/highlight matching cluster. */
   onServiceActivate?: (service: string) => void;
 }
@@ -105,6 +120,7 @@ export default function IncidentTile({
   lastUpdated,
   layout = "default",
   highlightedService = null,
+  highlightedServices = null,
   onServiceActivate,
 }: Props) {
   const isSidebar = layout === "sidebar";
@@ -182,9 +198,15 @@ export default function IncidentTile({
               <X style={{ width: 11, height: 11 }} />
             </button>
           )}
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-            <Clock style={{ width: 10, height: 10 }} />
-            Updated {minutesAgo(lastUpdated)}
+          <span
+            style={{ fontSize: 10, color: "var(--color-text-muted)", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, textAlign: "right" }}
+            title={wallClock(lastUpdated)}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Clock style={{ width: 10, height: 10 }} />
+              <strong style={{ color: "var(--color-text-secondary)", fontWeight: 700 }}>{wallClock(lastUpdated)}</strong>
+            </span>
+            <span style={{ fontSize: 9, opacity: 0.9 }}>{minutesAgo(lastUpdated)}</span>
           </span>
         </div>
       </div>
@@ -284,7 +306,9 @@ export default function IncidentTile({
             const color     = SEV_COLOR[svc.topSeverity] ?? "#6B7280";
             const isOpen    = expandedService === svc.service;
             const isLast    = i === pageServices.length - 1;
-            const isHi      = highlightedService === svc.service;
+            const isHi =
+              highlightedService === svc.service ||
+              (highlightedServices?.includes(svc.service) ?? false);
 
             return (
               <div
