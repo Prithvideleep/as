@@ -4,7 +4,6 @@ export type DashboardSectionId =
   | "correlation"
   | "alerts"
   | "impacted"
-  | "suspectedChanges"
   | "resolution"
   | "allIncidents";
 
@@ -12,7 +11,6 @@ const KNOWN_SECTIONS: DashboardSectionId[] = [
   "correlation",
   "alerts",
   "impacted",
-  "suspectedChanges",
   "resolution",
   "allIncidents",
 ];
@@ -26,7 +24,7 @@ export interface DashboardLayoutPrefs {
 }
 
 const DEFAULT_PREFS: DashboardLayoutPrefs = {
-  mobileOrder: ["correlation", "alerts", "impacted", "suspectedChanges", "resolution", "allIncidents"],
+  mobileOrder: ["correlation", "alerts", "impacted", "resolution", "allIncidents"],
   collapsed: {},
   swapCorrelationColumns: false,
 };
@@ -38,13 +36,6 @@ function normalizeMobileOrder(raw: unknown): DashboardSectionId[] {
       ? (raw.filter((x) => typeof x === "string" && valid.has(x)) as DashboardSectionId[])
       : [...DEFAULT_PREFS.mobileOrder];
   if (order.length === 0) order = [...DEFAULT_PREFS.mobileOrder];
-  if (!order.includes("suspectedChanges")) {
-    const i = order.indexOf("impacted");
-    order =
-      i >= 0
-        ? [...order.slice(0, i + 1), "suspectedChanges", ...order.slice(i + 1)]
-        : [...DEFAULT_PREFS.mobileOrder];
-  }
   for (const id of KNOWN_SECTIONS) {
     if (!order.includes(id)) order.push(id);
   }

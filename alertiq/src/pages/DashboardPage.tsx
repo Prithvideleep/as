@@ -9,13 +9,11 @@ import {
   alertLevelSnapshot as initialSnapshot,
   historicalAlertSnapshots,
   correlationClusters,
-  recentSuspectedChanges,
 } from "../data/mockData";
 import type { AlertLevelSnapshot, CorrelationCluster } from "../data/mockData";
 import AlertLevelBar from "../components/dashboard/AlertLevelBar";
 import AlertDetailsPanel, { type LevelKey } from "../components/dashboard/AlertDetailsPanel";
 import ResolutionLogPanel from "../components/dashboard/ResolutionLogPanel";
-import SuspectedChangesCard from "../components/dashboard/SuspectedChangesCard";
 import CorrelationTile from "../components/dashboard/CorrelationTile";
 import IncidentTile from "../components/dashboard/IncidentTile";
 import AllIncidentsPanel from "../components/dashboard/AllIncidentsPanel";
@@ -84,7 +82,6 @@ const SECTION_TITLES: Record<DashboardSectionId, string> = {
   correlation: "Top Alert Clusters",
   alerts: "Recent Alerts & alert level",
   impacted: "Impacted Services",
-  suspectedChanges: "Suspected changes (mock)",
   resolution: "Resolution log",
   allIncidents: "All Incidents",
 };
@@ -393,18 +390,10 @@ export default function DashboardPage() {
     </>
   );
 
-  const narrowSuspectedChanges = (
-    <>
-      <span style={SECTION_LABEL}>Suspected changes (mock)</span>
-      <SuspectedChangesCard changes={recentSuspectedChanges} onOpenIncident={openPreview} layout="default" />
-    </>
-  );
-
   const sectionRenderers: Record<DashboardSectionId, ReactNode> = {
     correlation: narrowCorrelation,
     alerts: narrowAlerts,
     impacted: narrowImpacted,
-    suspectedChanges: narrowSuspectedChanges,
     resolution: resolutionLogBlock,
     allIncidents: allIncidentsBlock,
   };
@@ -533,7 +522,7 @@ export default function DashboardPage() {
                 onClick={() =>
                   persistPrefs({
                     ...layoutPrefs,
-                    mobileOrder: ["correlation", "alerts", "impacted", "suspectedChanges", "resolution", "allIncidents"],
+                    mobileOrder: ["correlation", "alerts", "impacted", "resolution", "allIncidents"],
                   })
                 }
                 style={{ fontSize: 11, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--color-border)", cursor: "pointer" }}
@@ -545,7 +534,7 @@ export default function DashboardPage() {
                 onClick={() =>
                   persistPrefs({
                     ...layoutPrefs,
-                    mobileOrder: ["alerts", "correlation", "impacted", "suspectedChanges", "resolution", "allIncidents"],
+                    mobileOrder: ["alerts", "correlation", "impacted", "resolution", "allIncidents"],
                   })
                 }
                 style={{ fontSize: 11, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--color-border)", cursor: "pointer" }}
@@ -754,16 +743,6 @@ export default function DashboardPage() {
                   {...impactedTileProps}
                   layout="sidebar"
                   highlightedServices={impactedMultiHighlight}
-                />
-              </div>
-            </SectionShell>
-            <SectionShell id="suspectedChanges" title={SECTION_TITLES.suspectedChanges}>
-              <div style={{ width: "100%", flexShrink: 0 }}>
-                <span style={SECTION_LABEL}>Suspected changes (mock)</span>
-                <SuspectedChangesCard
-                  changes={recentSuspectedChanges}
-                  onOpenIncident={openPreview}
-                  layout="sidebar"
                 />
               </div>
             </SectionShell>
