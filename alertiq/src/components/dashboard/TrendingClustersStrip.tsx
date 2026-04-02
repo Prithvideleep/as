@@ -1,10 +1,27 @@
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
+import { ChevronRight } from "lucide-react";
 import type { CorrelationCluster, Incident } from "../../data/mockData";
+import { dashTopTileColumn, dashTopTileShell, dashTopTileTitle } from "./dashboardTopTileStyles";
 
 const MAX = 5;
 
+const HEADER: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "0 0 6px",
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "var(--color-text-muted)",
+  borderBottom: "1px solid var(--color-border)",
+  marginBottom: 4,
+};
+
 /**
- * Wireframe-aligned tile: two-column table — Major Alerts (links) · # impacted Services.
+ * Matches Trending P1/P2 tile: label + card chrome + row buttons.
  */
 export default function TrendingClustersStrip({
   clusters,
@@ -19,113 +36,70 @@ export default function TrendingClustersStrip({
   const byId = useMemo(() => Object.fromEntries(incidents.map((i) => [i.id, i])), [incidents]);
 
   return (
-    <div style={{ minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: "var(--color-text-primary)",
-          display: "block",
-          marginBottom: 10,
-          lineHeight: 1.3,
-        }}
-      >
-        Trending Clustered Alerts (max 5)
-      </span>
-      <div
-        style={{
-          flex: 1,
-          borderRadius: 14,
-          border: "1px solid var(--color-border)",
-          backgroundColor: "var(--color-bg-card)",
-          padding: 0,
-          minHeight: 120,
-          overflow: "hidden",
-        }}
-      >
-        {list.length === 0 ? (
-          <p style={{ margin: 0, padding: 20, fontSize: 13, color: "var(--color-text-muted)", textAlign: "center" }}>
-            No clustered alerts
-          </p>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    fontWeight: 700,
-                    color: "var(--color-text-secondary)",
-                    fontSize: 12,
-                  }}
-                >
-                  Major Alerts
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "10px 14px",
-                    fontWeight: 700,
-                    color: "var(--color-text-secondary)",
-                    fontSize: 12,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  # impacted Services
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((c) => {
-                const inc = byId[c.incidentId];
-                const impactedCount = inc?.impactedServices ?? c.impactedL1.length;
-                const majorLabel = c.relatedAlerts[0]?.title ?? c.incidentName;
-                return (
-                  <tr key={c.incidentId} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                    <td style={{ padding: "10px 14px", verticalAlign: "middle", maxWidth: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => onSelectIncident(c.incidentId)}
-                        title={majorLabel}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          padding: 0,
-                          margin: 0,
-                          cursor: "pointer",
-                          font: "inherit",
-                          fontWeight: 600,
-                          color: "#EB5928",
-                          textDecoration: "underline",
-                          textAlign: "left",
-                          maxWidth: "100%",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          display: "block",
-                        }}
-                      >
-                        {majorLabel}
-                      </button>
-                    </td>
-                    <td
-                      style={{
-                        padding: "10px 14px",
-                        textAlign: "right",
-                        color: "var(--color-text-primary)",
-                        fontWeight: 600,
-                        verticalAlign: "middle",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {impactedCount}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+    <div style={dashTopTileColumn}>
+      <div style={{ ...dashTopTileShell, gap: 4 }}>
+        <span style={dashTopTileTitle}>Trending clustered alerts (max 5)</span>
+        {list.length > 0 && (
+          <div style={HEADER}>
+            <span>Major alerts</span>
+            <span style={{ textAlign: "right" }}># Impacted</span>
+          </div>
+        )}
+        {list.map((c) => {
+          const inc = byId[c.incidentId];
+          const impactedCount = inc?.impactedServices ?? c.impactedL1.length;
+          const majorLabel = c.relatedAlerts[0]?.title ?? c.incidentName;
+          return (
+            <button
+              key={c.incidentId}
+              type="button"
+              onClick={() => onSelectIncident(c.incidentId)}
+              title={majorLabel}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid transparent",
+                background: "rgba(15,23,42,0.03)",
+                cursor: "pointer",
+                textAlign: "left",
+                width: "100%",
+              }}
+            >
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#EB5928",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {majorLabel}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--color-text-primary)",
+                  flexShrink: 0,
+                  minWidth: 28,
+                  textAlign: "right",
+                }}
+              >
+                {impactedCount}
+              </span>
+              <ChevronRight style={{ width: 14, height: 14, color: "var(--color-text-muted)", flexShrink: 0 }} />
+            </button>
+          );
+        })}
+        {list.length === 0 && (
+          <p style={{ margin: "auto", fontSize: 12, color: "var(--color-text-muted)" }}>No clustered alerts</p>
         )}
       </div>
     </div>

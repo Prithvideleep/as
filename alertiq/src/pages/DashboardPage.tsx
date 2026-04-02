@@ -16,6 +16,7 @@ import SelectionCriteriaBar from "../components/dashboard/SelectionCriteriaBar";
 import TrendingClustersStrip from "../components/dashboard/TrendingClustersStrip";
 import TrendingP1P2IncidentsStrip from "../components/dashboard/TrendingP1P2IncidentsStrip";
 import AlertCorrelatedDetailsTable from "../components/dashboard/AlertCorrelatedDetailsTable";
+import { dashTopTileColumn, dashTopTileShell } from "../components/dashboard/dashboardTopTileStyles";
 import { clearLegacyDashboardLayoutPrefs } from "../lib/dashboardLayoutPrefs";
 
 const DASH_STACK_GAP = 24;
@@ -242,26 +243,14 @@ export default function DashboardPage() {
                 alignItems: "stretch",
               }}
             >
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid var(--color-border)",
-                    backgroundColor: "var(--color-bg-card)",
-                    padding: "12px 14px 14px",
-                    minHeight: 120,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-start",
-                  }}
-                >
+              <div style={dashTopTileColumn}>
+                <div style={dashTopTileShell}>
                   <AlertLevelBar
                     snapshot={activeSnapshot}
                     onRefresh={viewOffset === null ? handleRefresh : undefined}
                     demoteClearAndError={false}
-                    visualization="columns"
+                    visualization="rows"
                     embedded
-                    chartMinHeight={140}
                   />
                 </div>
               </div>

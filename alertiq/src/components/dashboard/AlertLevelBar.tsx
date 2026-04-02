@@ -70,16 +70,24 @@ export default function AlertLevelBar({
   const isSidebar = layout === "sidebar";
   const displayLevels = demoteClearAndError ? LEVELS.filter((lv) => lv.key !== "clear" && lv.key !== "error") : LEVELS;
   const max = Math.max(...displayLevels.map((lv) => snapshot.levels[lv.key]), 1);
+  /** Dashboard tile: stretch rows so the card isn’t half empty white space. */
+  const embeddedRowsFill = embedded && visualization === "rows" && !isSidebar;
 
   const outerStyle: CSSProperties = {
     backgroundColor: embedded ? "transparent" : "var(--color-bg-card)",
     borderRadius: embedded ? 0 : 14,
-    padding: embedded ? (visualization === "columns" ? "4px 0 0" : "12px 20px 14px") : isSidebar ? "18px 20px 14px" : "18px 20px",
+    padding: embedded
+      ? visualization === "columns"
+        ? "4px 0 0"
+        : "2px 0 0"
+      : isSidebar
+        ? "18px 20px 14px"
+        : "18px 20px",
     border: embedded ? "none" : "1px solid var(--color-border)",
-    flex: isSidebar ? "0 1 auto" : "0 1 auto",
+    flex: embeddedRowsFill ? "1 1 auto" : isSidebar ? "0 1 auto" : "0 1 auto",
     maxHeight: isSidebar ? sidebarMaxHeight : undefined,
     minWidth: 0,
-    minHeight: isSidebar ? 0 : undefined,
+    minHeight: embeddedRowsFill || isSidebar ? 0 : undefined,
     width: "100%",
     display: "flex",
     flexDirection: "column",
@@ -110,7 +118,22 @@ export default function AlertLevelBar({
           </button>
         )}
       </div>
-      <p style={{ flexShrink: 0, fontSize: 11, color: "var(--color-text-muted)", marginBottom: visualization === "columns" ? 10 : isSidebar ? 12 : 16 }}>
+      <p
+        style={{
+          flexShrink: 0,
+          fontSize: 11,
+          color: "var(--color-text-muted)",
+          marginBottom: embedded
+            ? visualization === "columns"
+              ? 10
+              : 8
+            : visualization === "columns"
+              ? 10
+              : isSidebar
+                ? 12
+                : 16,
+        }}
+      >
         {periodLabel ? (
           <>
             Period: {periodLabel} &nbsp;·&nbsp; {windowCount ?? 0} incident{windowCount === 1 ? "" : "s"} reviewed
@@ -132,7 +155,13 @@ export default function AlertLevelBar({
           chartMinHeight={chartMinHeight}
         />
       ) : (
-        <RowChart displayLevels={displayLevels} snapshot={snapshot} max={max} isSidebar={isSidebar} />
+        <RowChart
+          displayLevels={displayLevels}
+          snapshot={snapshot}
+          max={max}
+          isSidebar={isSidebar}
+          fillVertical={embeddedRowsFill}
+        />
       )}
     </div>
   );
@@ -236,23 +265,29 @@ function RowChart({
   snapshot,
   max,
   isSidebar,
+  fillVertical = false,
 }: {
   displayLevels: (typeof LEVELS)[number][];
   snapshot: AlertLevelSnapshot;
   max: number;
   isSidebar: boolean;
+  /** Spread rows across available height (embedded dashboard tile). */
+  fillVertical?: boolean;
 }) {
+  const barH = fillVertical ? 12 : 10;
+  const flexMain = fillVertical || isSidebar ? "1 1 auto" : "0 0 auto";
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 10,
-        flex: isSidebar ? "1 1 auto" : "0 0 auto",
-        minHeight: isSidebar ? 0 : undefined,
+        gap: fillVertical ? 0 : 10,
+        flex: flexMain,
+        minHeight: fillVertical || isSidebar ? 0 : undefined,
         overflowY: isSidebar ? "auto" : "visible",
         overscrollBehavior: isSidebar ? "contain" : undefined,
-        justifyContent: isSidebar ? "flex-start" : "flex-start",
+        justifyContent: fillVertical ? "space-between" : "flex-start",
       }}
     >
       {displayLevels.map((lv, idx) => {
@@ -260,7 +295,7 @@ function RowChart({
         const targetPct = val === 0 ? 0 : Math.max((val / max) * 100, 3);
 
         return (
-          <div key={lv.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div key={lv.key} style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <span
               style={{
                 fontSize: 11,
@@ -277,7 +312,7 @@ function RowChart({
             <div
               style={{
                 flex: 1,
-                height: 10,
+                height: barH,
                 borderRadius: 6,
                 backgroundColor: "var(--color-border)",
                 overflow: "hidden",
@@ -305,10 +340,12 @@ function RowChart({
                 fontSize: 12,
                 fontWeight: 800,
                 color: val === 0 ? "var(--color-text-muted)" : lv.color,
-                width: 32,
+                minWidth: 36,
+                width: 36,
                 textAlign: "right",
                 flexShrink: 0,
                 lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {val}

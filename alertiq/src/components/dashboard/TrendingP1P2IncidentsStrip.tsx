@@ -1,18 +1,9 @@
 import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import type { Incident } from "../../data/mockData";
+import { dashTopTileColumn, dashTopTileShell, dashTopTileTitle } from "./dashboardTopTileStyles";
 
 const MAX = 5;
-
-const LABEL: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--color-text-muted)",
-  display: "block",
-  marginBottom: 8,
-};
 
 /** P1/P2 proxy: critical + high severity open incidents, newest first. */
 export default function TrendingP1P2IncidentsStrip({
@@ -30,21 +21,9 @@ export default function TrendingP1P2IncidentsStrip({
   }, [incidents]);
 
   return (
-    <div style={{ minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
-      <span style={LABEL}>Trending incidents (P1 / P2)</span>
-      <div
-        style={{
-          flex: 1,
-          borderRadius: 14,
-          border: "1px solid var(--color-border)",
-          backgroundColor: "var(--color-bg-card)",
-          padding: "8px 10px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          minHeight: 120,
-        }}
-      >
+    <div style={dashTopTileColumn}>
+      <div style={{ ...dashTopTileShell, gap: 4 }}>
+        <span style={dashTopTileTitle}>Trending incidents (P1 / P2)</span>
         {list.map((i) => {
           const tier = i.severity === "critical" ? "P1" : "P2";
           return (
