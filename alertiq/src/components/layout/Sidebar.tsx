@@ -1,23 +1,31 @@
 import { Link, useLocation, matchPath, type Location } from "react-router-dom";
 import {
   LayoutDashboard,
+  ListOrdered,
+  GitBranch,
+  Bell,
+  History,
   Search,
   Network,
   ShieldAlert,
 } from "lucide-react";
 
-const SIDEBAR_BG   = "#1C1C28";
+const SIDEBAR_BG = "#1C1C28";
 const SIDEBAR_BORDER = "rgba(255,255,255,0.07)";
-const ACTIVE_BG    = "rgba(235,89,40,0.15)";
+const ACTIVE_BG = "rgba(235,89,40,0.15)";
 const ACTIVE_COLOR = "#EB5928";
-const IDLE_COLOR   = "rgba(255,255,255,0.55)";
-const HOVER_BG     = "rgba(255,255,255,0.06)";
-const HOVER_COLOR  = "rgba(255,255,255,0.9)";
+const IDLE_COLOR = "rgba(255,255,255,0.55)";
+const HOVER_BG = "rgba(255,255,255,0.06)";
+const HOVER_COLOR = "rgba(255,255,255,0.9)";
 
 const navItems = [
-  { to: "/",              icon: LayoutDashboard, label: "Dashboard"     },
-  { to: "/investigation", icon: Search,          label: "Investigation" },
-  { to: "/topology",      icon: Network,         label: "Topology"      },
+  { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/incidents", label: "Incidents", icon: ListOrdered },
+  { to: "/changes", label: "Changes", icon: GitBranch },
+  { to: "/alert-details", label: "Alert details", icon: Bell },
+  { to: "/history", label: "History", icon: History },
+  { to: "/investigation", label: "Investigation", icon: Search },
+  { to: "/topology", label: "Topology", icon: Network },
 ] as const;
 
 function navItemActive(location: Location, item: (typeof navItems)[number]): boolean {
@@ -59,27 +67,36 @@ export default function Sidebar({
       >
         <div
           style={{
-            width: 32, height: 32, borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 8,
             backgroundColor: ACTIVE_COLOR,
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             flexShrink: 0,
           }}
         >
           <ShieldAlert style={{ width: 18, height: 18, color: "#fff" }} />
         </div>
         <div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.3px" }}>
-            AlertIQ
-          </span>
-          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>
-            SmartSwarm
-          </p>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.3px" }}>AlertIQ</span>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>SmartSwarm</p>
         </div>
       </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", padding: "4px 10px 8px" }}>
+        <p
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.25)",
+            padding: "4px 10px 8px",
+          }}
+        >
           Navigation
         </p>
         {navItems.map((item) => {
