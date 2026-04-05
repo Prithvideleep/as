@@ -1,14 +1,5 @@
 import { Link, useLocation, matchPath, type Location } from "react-router-dom";
-import {
-  LayoutDashboard,
-  ListOrdered,
-  GitBranch,
-  Bell,
-  History,
-  Search,
-  Network,
-  ShieldAlert,
-} from "lucide-react";
+import { LayoutDashboard, ListOrdered, GitBranch, Search, Network, ShieldAlert } from "lucide-react";
 
 const SIDEBAR_BG = "#1C1C28";
 const SIDEBAR_BORDER = "rgba(255,255,255,0.07)";
@@ -19,11 +10,9 @@ const HOVER_BG = "rgba(255,255,255,0.06)";
 const HOVER_COLOR = "rgba(255,255,255,0.9)";
 
 const navItems = [
-  { to: "/", label: "Home", icon: LayoutDashboard },
+  { to: "/", label: "Overview", icon: LayoutDashboard },
   { to: "/incidents", label: "Incidents", icon: ListOrdered },
   { to: "/changes", label: "Changes", icon: GitBranch },
-  { to: "/alert-details", label: "Alert details", icon: Bell },
-  { to: "/history", label: "History", icon: History },
   { to: "/investigation", label: "Investigation", icon: Search },
   { to: "/topology", label: "Topology", icon: Network },
 ] as const;
@@ -97,7 +86,7 @@ export default function Sidebar({
             padding: "4px 10px 8px",
           }}
         >
-          Navigation
+          Main menu
         </p>
         {navItems.map((item) => {
           const { to, icon: Icon, label } = item;

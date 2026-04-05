@@ -34,7 +34,7 @@ export default function SelectionCriteriaBar({
         <SlidersHorizontal style={{ width: 14, height: 14, color: "var(--color-text-muted)", flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-secondary)" }}>Selection criteria</span>
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-          Applies to all tiles on Home.
+          Applies to all tiles on the overview.
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

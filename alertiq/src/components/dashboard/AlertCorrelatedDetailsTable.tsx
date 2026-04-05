@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useState, type CSSProperties } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Download, ChevronRight, ChevronDown, ArrowRight } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import type { CorrelationCluster, Incident, IncidentDetail } from "../../data/mockData";
@@ -40,7 +40,6 @@ const COLS = [
   "App name / AIDE ID",
   "Associated Incident #",
   "Associated Change #",
-  "History",
 ] as const;
 
 const SAMPLE_SIZE = 10;
@@ -135,7 +134,7 @@ export default function AlertCorrelatedDetailsTable({
             services from the mock blast-radius list; use{" "}
             <strong style={{ color: "var(--color-text-secondary)" }}>Open investigation</strong> or click{" "}
             <strong style={{ color: "var(--color-text-secondary)" }}>Associated Incident #</strong> to open that incident in
-            Investigation. <strong style={{ color: "var(--color-text-secondary)" }}>History</strong> goes to the resolution log.
+            Investigation.
           </p>
         </div>
         <button
@@ -275,11 +274,6 @@ function GroupRows({
         </button>
       </td>
       <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)" }}>{r.changeId}</td>
-      <td style={{ padding: "10px 12px" }} onClick={(e) => e.stopPropagation()}>
-        <Link to="/history" style={{ color: "#EB5928", fontWeight: 600, textDecoration: "none" }}>
-          {r.historyLabel}
-        </Link>
-      </td>
     </>
   );
 
@@ -364,7 +358,7 @@ function GroupRows({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <td colSpan={6} style={{ padding: "10px 14px 10px 20px", verticalAlign: "middle" }}>
+        <td colSpan={5} style={{ padding: "10px 14px 10px 20px", verticalAlign: "middle" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
             <button
               type="button"
@@ -422,11 +416,6 @@ function GroupRows({
             </button>
           </td>
           <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)" }}>{r.changeId}</td>
-          <td style={{ padding: "10px 12px" }} onClick={(e) => e.stopPropagation()}>
-            <Link to="/history" style={{ color: "#EB5928", fontWeight: 600, textDecoration: "none" }}>
-              {r.historyLabel}
-            </Link>
-          </td>
         </tr>
       ))}
     </>

@@ -12,7 +12,6 @@ export type CorrelatedDetailRow = {
   changeId: string;
   /** Mock app / AIDE-style identifier */
   aideId: string;
-  historyLabel: string;
 };
 
 export type CorrelatedDetailGroup = {
@@ -51,11 +50,6 @@ function mockAideId(service: string, incidentId: string): string {
   return `${compact}${num.padStart(4, "0")}`;
 }
 
-function mockHistoryLabel(incidentId: string): string {
-  const n = incidentId.replace(/\D/g, "") || "0";
-  return `Alert No ${n}`;
-}
-
 function incidentTicketId(incidentId: string): string {
   const n = incidentId.replace(/\D/g, "") || "0";
   return `INC${n.padStart(4, "0")}`;
@@ -77,7 +71,6 @@ export function makeImpactedRows(
     incidentId: owner.incidentId,
     changeId: owner.changeId,
     aideId: mockAideId(service, internalIncidentId),
-    historyLabel: owner.historyLabel,
   }));
 }
 
@@ -108,7 +101,6 @@ export function buildCorrelatedDetailGroups(
 
     const changeId = mockChangeId(c.incidentId);
     const ticketId = incidentTicketId(c.incidentId);
-    const historyLabel = mockHistoryLabel(c.incidentId);
 
     const owner: CorrelatedDetailRow = {
       id: `${c.incidentId}-owner`,
@@ -121,7 +113,6 @@ export function buildCorrelatedDetailGroups(
       incidentId: ticketId,
       changeId,
       aideId: mockAideId(primaryService, c.incidentId),
-      historyLabel,
     };
 
     const fromBlast = detail?.blastRadius.map((b) => b.service) ?? [];
@@ -159,7 +150,6 @@ export function buildInactiveCorrelatedDetailGroups(
     const primaryService = detail.blastRadius[0]?.service ?? "—";
     const changeId = mockChangeId(inc.id);
     const ticketId = incidentTicketId(inc.id);
-    const historyLabel = mockHistoryLabel(inc.id);
 
     const owner: CorrelatedDetailRow = {
       id: `${inc.id}-owner`,
@@ -172,7 +162,6 @@ export function buildInactiveCorrelatedDetailGroups(
       incidentId: ticketId,
       changeId,
       aideId: mockAideId(primaryService, inc.id),
-      historyLabel,
     };
 
     return {
@@ -235,7 +224,6 @@ export function correlatedRowsToCsv(rows: CorrelatedDetailRow[]): string {
     "AIDE ID",
     "Incident",
     "Change",
-    "History",
   ];
   const lines = [
     header.join(","),
@@ -251,7 +239,6 @@ export function correlatedRowsToCsv(rows: CorrelatedDetailRow[]): string {
         csvEscape(r.aideId),
         r.incidentId,
         r.changeId,
-        csvEscape(r.historyLabel),
       ].join(",")
     ),
   ];

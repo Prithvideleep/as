@@ -37,7 +37,7 @@ export default function BackButton({ label = "Back" }: { label?: string }) {
         (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border)";
         (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
       }}
-      title="Go back (or Dashboard)"
+      title="Return to previous page, or overview if you opened this link directly"
     >
       <ArrowLeft style={{ width: 14, height: 14 }} />
       {label}

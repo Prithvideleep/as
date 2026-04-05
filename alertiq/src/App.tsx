@@ -4,8 +4,6 @@ import { TriageDrawerProvider } from "./context/TriageDrawerContext";
 import AppLayout from "./components/layout/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
 import IncidentsPage from "./pages/IncidentsPage";
-import HistoryPage from "./pages/HistoryPage";
-import AlertDetailsPage from "./pages/AlertDetailsPage";
 import IncidentDetailsPage from "./pages/IncidentDetailsPage";
 import ChangesPage from "./pages/ChangesPage";
 import InvestigationPage from "./pages/InvestigationPage";
@@ -20,8 +18,8 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/alert-details" element={<AlertDetailsPage />} />
+              <Route path="/history" element={<Navigate to="/incidents" replace />} />
+              <Route path="/alert-details" element={<Navigate to="/" replace />} />
               <Route path="/incident-details" element={<IncidentDetailsPage />} />
               <Route path="/changes" element={<ChangesPage />} />
               <Route path="/investigation" element={<InvestigationPage />} />

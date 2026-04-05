@@ -1,13 +1,29 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAppContext } from "../context/AppContext";
 import { incidents, incidentDetails } from "../data/mockData";
 import AllIncidentsPanel from "../components/dashboard/AllIncidentsPanel";
-import BackButton from "../components/shared/BackButton";
+import OperationsPageHeader from "../components/shared/OperationsPageHeader";
+import OperationsSummaryStrip from "../components/shared/OperationsSummaryStrip";
 
 export default function IncidentsPage() {
   const navigate = useNavigate();
   const { setSelectedIncidentId } = useAppContext();
+
+  const summaryItems = useMemo(() => {
+    const active = incidents.filter((i) => i.status === "active").length;
+    const investigating = incidents.filter((i) => i.status === "investigating").length;
+    const resolved = incidents.filter((i) => i.status === "resolved").length;
+    const alerts = incidents.reduce((n, i) => n + i.alertCount, 0);
+    return [
+      { label: "Register total", value: incidents.length, sublabel: "All incident records" },
+      { label: "Active", value: active, sublabel: "Open — needs ownership" },
+      { label: "Investigating", value: investigating, sublabel: "Under active review" },
+      { label: "Resolved", value: resolved, sublabel: "Closed in this dataset" },
+      { label: "Alerts (sum)", value: alerts, sublabel: "Correlated alert count" },
+    ];
+  }, [incidents]);
 
   const onSelect = (id: string) => {
     setSelectedIncidentId(id);
@@ -20,12 +36,14 @@ export default function IncidentsPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}
+        style={{ maxWidth: 1120, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <BackButton />
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>All incidents</h1>
-        </div>
+        <OperationsPageHeader
+          kicker="Incident management"
+          title="Incidents"
+          description="Unified register of active and resolved incidents. Use search and filters to narrow the list; open a row to continue in Investigation."
+        />
+        <OperationsSummaryStrip items={summaryItems} />
         <AllIncidentsPanel incidents={incidents} incidentDetails={incidentDetails} onSelect={onSelect} />
       </motion.div>
     </div>

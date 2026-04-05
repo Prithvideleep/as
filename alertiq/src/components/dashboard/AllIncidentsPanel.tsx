@@ -189,8 +189,19 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
         overflow: "hidden",
       }}
     >
-      <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--color-border)" }}>
+      <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-primary)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--color-text-secondary)",
+              flexShrink: 0,
+              minWidth: 118,
+            }}
+          >
+            Incident register
+          </span>
           <div style={{ position: "relative", flex: 1, minWidth: 140 }}>
             <Search
               style={{
@@ -210,7 +221,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search by name, ID, or service…"
+              placeholder="Search by incident name, ID, or service"
               style={{
                 width: "100%",
                 paddingLeft: 28,
@@ -286,7 +297,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
           </button>
 
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>
-            {tableRows.length} result{tableRows.length === 1 ? "" : "s"}
+            Showing {tableRows.length} incident{tableRows.length === 1 ? "" : "s"}
           </span>
         </div>
 
@@ -344,7 +355,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                             cursor: "pointer",
                           }}
                         >
-                          {s === "all" ? "All" : SEV_LABEL[s]}
+                          {s === "all" ? "Any severity" : SEV_LABEL[s]}
                         </button>
                       );
                     })}
@@ -385,7 +396,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                             textTransform: "capitalize",
                           }}
                         >
-                          {s === "all" ? "All" : s}
+                          {s === "all" ? "Any status" : s}
                         </button>
                       );
                     })}
@@ -409,7 +420,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                     {(
                       [
-                        { id: "all" as TimeFilter, label: "All time" },
+                        { id: "all" as TimeFilter, label: "Any time range" },
                         { id: "15m" as TimeFilter, label: "Last 15m" },
                         { id: "1h" as TimeFilter, label: "Last 1h" },
                         { id: "6h" as TimeFilter, label: "Last 6h" },
@@ -533,7 +544,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                       cursor: "pointer",
                     }}
                   >
-                    Clear all
+                    Reset filters
                   </button>
                   <button
                     onClick={applyFilters}
@@ -621,7 +632,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                     fontSize: 13,
                   }}
                 >
-                  No incidents match your filters
+                  No incidents match the current criteria.
                 </div>
               ) : (
                 pageRows.map((inc, i) => {
@@ -755,7 +766,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
           }}
         >
           <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            Page {page} of {totalPages} &nbsp;·&nbsp; {tableRows.length} incidents
+            Page {page} of {totalPages} &nbsp;·&nbsp; {tableRows.length} total
           </span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button
@@ -773,7 +784,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                 opacity: page === 1 ? 0.5 : 1,
               }}
             >
-              ← Prev
+              Previous
             </button>
 
             {Array.from({ length: Math.min(totalPages, 5) }, (_, k) => {
@@ -816,7 +827,7 @@ export default function AllIncidentsPanel({ incidents, incidentDetails, onSelect
                 opacity: page === totalPages ? 0.5 : 1,
               }}
             >
-              Next →
+              Next
             </button>
           </div>
         </div>
