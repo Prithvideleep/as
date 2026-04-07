@@ -21,7 +21,7 @@ const HEADER: CSSProperties = {
 };
 
 /**
- * Matches Trending P1/P2 tile: label + card chrome + row buttons.
+ * Matches Trending P1/P2 tile: title + card chrome + row buttons.
  */
 export default function TrendingClustersStrip({
   clusters,
@@ -38,7 +38,7 @@ export default function TrendingClustersStrip({
   return (
     <div style={dashTopTileColumn}>
       <div style={{ ...dashTopTileShell, gap: 4 }}>
-        <span style={dashTopTileTitle}>Trending clustered alerts (max 5)</span>
+        <span style={dashTopTileTitle}>Trending alerts</span>
         {list.length > 0 && (
           <div style={HEADER}>
             <span>Major alerts</span>
@@ -99,7 +99,7 @@ export default function TrendingClustersStrip({
           );
         })}
         {list.length === 0 && (
-          <p style={{ margin: "auto", fontSize: 12, color: "var(--color-text-muted)" }}>No clustered alerts</p>
+          <p style={{ margin: "auto", fontSize: 12, color: "var(--color-text-muted)" }}>No trending alerts</p>
         )}
       </div>
     </div>

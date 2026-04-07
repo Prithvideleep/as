@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, ChevronDown, ArrowRight, AlertOctagon, Server, Link2, Info, CheckCircle2 } from "lucide-react";
+import { Download, ChevronDown, ArrowRight, AlertOctagon, Server, Link2, Info } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import type { CorrelationCluster, Incident, IncidentDetail, BlastRadiusItem, Severity } from "../../data/mockData";
 import {
@@ -92,7 +92,6 @@ function resolveCardContent(
   relatedAlerts: { title: string; source: string; timestamp: string }[];
   impactedL1: BlastRadiusItem[];
   impactedL2Placeholder: string;
-  resolutionSummary?: string;
   severity: Severity;
   title: string;
 } {
@@ -101,7 +100,6 @@ function resolveCardContent(
       relatedAlerts: cluster.relatedAlerts,
       impactedL1: cluster.impactedL1,
       impactedL2Placeholder: cluster.impactedL2Placeholder,
-      resolutionSummary: cluster.resolutionSummary,
       severity: cluster.severity,
       title: cluster.incidentName,
     };
@@ -116,7 +114,6 @@ function resolveCardContent(
       relatedAlerts,
       impactedL1,
       impactedL2Placeholder: DEFAULT_L2,
-      resolutionSummary: detail.resolutionSummary,
       severity: detail.severity,
       title: detail.name,
     };
@@ -153,12 +150,14 @@ export default function AlertCorrelatedDetailsTable({
   );
 
   const allGroups = useMemo(() => [...activeGroups, ...inactiveGroups], [activeGroups, inactiveGroups]);
-  const groupsSignature = useMemo(() => allGroups.map((g) => g.incidentId).sort().join("|"), [allGroups]);
 
-  const displayedGroups = useMemo(
-    () => sampleRandomGroups(allGroups, SAMPLE_SIZE),
-    [allGroups, groupsSignature]
+  const [includeInactiveRows, setIncludeInactiveRows] = useState(false);
+  const rowPool = useMemo(
+    () => (includeInactiveRows ? allGroups : activeGroups),
+    [includeInactiveRows, allGroups, activeGroups]
   );
+  const rowPoolSig = useMemo(() => rowPool.map((g) => g.incidentId).sort().join("|"), [rowPool]);
+  const displayedGroups = useMemo(() => sampleRandomGroups(rowPool, SAMPLE_SIZE), [rowPool, rowPoolSig]);
 
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
@@ -185,6 +184,7 @@ export default function AlertCorrelatedDetailsTable({
   }, [activeGroups, inactiveGroups]);
 
   const empty = allGroups.length === 0;
+  const noRowsInPool = !empty && rowPool.length === 0;
 
   return (
     <div style={{ minWidth: 0 }}>
@@ -194,10 +194,31 @@ export default function AlertCorrelatedDetailsTable({
           <p style={HINT}>
             Table view with <strong style={{ color: "var(--color-text-secondary)" }}>up to {SAMPLE_SIZE}</strong> sample groups.
             <strong style={{ color: "#16A34A" }}> Active</strong> rows use green accents;{" "}
-            <strong style={{ color: "var(--color-text-muted)" }}>Inactive</strong> use grey. Expand a row for related alerts, Level 1,
-            blast radius, and Level 2 / resolution.
+            <strong style={{ color: "var(--color-text-muted)" }}>Inactive</strong> use grey. By default only active rows are shown;
+            enable below to include inactive. Expand a row for related alerts, Level 1, blast radius, and Level 2 context.
           </p>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              color: "var(--color-text-secondary)",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeInactiveRows}
+              onChange={(e) => setIncludeInactiveRows(e.target.checked)}
+              style={{ width: 14, height: 14, accentColor: "var(--color-accent)", cursor: "pointer" }}
+            />
+            Show inactive rows
+          </label>
         <button
           type="button"
           onClick={exportCsv}
@@ -219,6 +240,7 @@ export default function AlertCorrelatedDetailsTable({
           <Download style={{ width: 14, height: 14 }} />
           Export
         </button>
+        </div>
       </div>
       <div
         style={{
@@ -230,6 +252,11 @@ export default function AlertCorrelatedDetailsTable({
       >
         {empty ? (
           <p style={{ padding: 20, margin: 0, color: "var(--color-text-muted)", fontSize: 13 }}>No correlated rows.</p>
+        ) : noRowsInPool ? (
+          <p style={{ padding: 20, margin: 0, color: "var(--color-text-muted)", fontSize: 13 }}>
+            No active rows in the sample. Turn on <strong style={{ color: "var(--color-text-secondary)" }}>Show inactive rows</strong>{" "}
+            to include inactive incidents.
+          </p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
@@ -514,6 +541,7 @@ function ExpandedDetailBody({
   inactiveBlastTags: string[];
   openInvestigation: () => void;
 }) {
+  const [showInactiveContext, setShowInactiveContext] = useState(false);
   return (
     <>
       <DetailSection
@@ -611,80 +639,74 @@ function ExpandedDetailBody({
       )}
 
       {!isActive && inactiveBlastTags.length > 0 && (
-        <DetailSection
-          icon={<Server style={{ width: 12, height: 12, color: "#64748b" }} />}
-          label="Blast radius (record)"
-          color="#64748b"
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-            {inactiveBlastTags.map((svc) => (
-              <span
-                key={svc}
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  padding: "3px 10px",
-                  borderRadius: 999,
-                  backgroundColor: "rgba(100, 116, 139, 0.1)",
-                  color: "var(--color-text-secondary)",
-                  border: "1px solid rgba(100, 116, 139, 0.22)",
-                }}
-              >
-                {svc}
-              </span>
-            ))}
-          </div>
-        </DetailSection>
+        <div style={{ marginTop: 2 }}>
+          <button
+            type="button"
+            onClick={() => setShowInactiveContext((v) => !v)}
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--color-accent)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px 0",
+            }}
+          >
+            {showInactiveContext ? "Hide inactive context" : "Show inactive context"}
+          </button>
+          {showInactiveContext && (
+            <DetailSection
+              icon={<Server style={{ width: 12, height: 12, color: "#64748b" }} />}
+              label="Blast radius (record)"
+              color="#64748b"
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                {inactiveBlastTags.map((svc) => (
+                  <span
+                    key={svc}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "3px 10px",
+                      borderRadius: 999,
+                      backgroundColor: "rgba(100, 116, 139, 0.1)",
+                      color: "var(--color-text-secondary)",
+                      border: "1px solid rgba(100, 116, 139, 0.22)",
+                    }}
+                  >
+                    {svc}
+                  </span>
+                ))}
+              </div>
+            </DetailSection>
+          )}
+        </div>
       )}
 
-      {content.resolutionSummary ? (
-        <DetailSection
-          icon={<CheckCircle2 style={{ width: 12, height: 12, color: "#22C55E" }} />}
-          label="Resolution"
-          color="#22C55E"
+      <DetailSection
+        icon={<Link2 style={{ width: 12, height: 12, color: "#6B7280" }} />}
+        label="Level 2 — Downstream Dependencies"
+        color="#6B7280"
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 7,
+            padding: "8px 10px",
+            borderRadius: 8,
+            backgroundColor: "rgba(107,114,128,0.06)",
+            border: "1px dashed rgba(107,114,128,0.25)",
+            marginTop: 4,
+          }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 7,
-              padding: "8px 10px",
-              borderRadius: 8,
-              backgroundColor: "rgba(34,197,94,0.06)",
-              border: "1px solid rgba(34,197,94,0.2)",
-              marginTop: 4,
-            }}
-          >
-            <span style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
-              {content.resolutionSummary}
-            </span>
-          </div>
-        </DetailSection>
-      ) : (
-        <DetailSection
-          icon={<Link2 style={{ width: 12, height: 12, color: "#6B7280" }} />}
-          label="Level 2 — Downstream Dependencies"
-          color="#6B7280"
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 7,
-              padding: "8px 10px",
-              borderRadius: 8,
-              backgroundColor: "rgba(107,114,128,0.06)",
-              border: "1px dashed rgba(107,114,128,0.25)",
-              marginTop: 4,
-            }}
-          >
-            <Info style={{ width: 12, height: 12, color: "#6B7280", flexShrink: 0, marginTop: 1 }} />
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
-              {content.impactedL2Placeholder}
-            </span>
-          </div>
-        </DetailSection>
-      )}
+          <Info style={{ width: 12, height: 12, color: "#6B7280", flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
+            {content.impactedL2Placeholder}
+          </span>
+        </div>
+      </DetailSection>
 
       <button
         type="button"

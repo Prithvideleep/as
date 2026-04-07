@@ -50,6 +50,8 @@ export default function DashboardPage() {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
+  const [criteriaStartTime, setCriteriaStartTime] = useState("00:00");
+  const [criteriaEndTime, setCriteriaEndTime] = useState("23:59");
 
   const [viewOffset, setViewOffset] = useState<null | 15 | 30 | 45 | 60>(null);
   const [snapshot, setSnapshot] = useState<AlertLevelSnapshot>(initialSnapshot);
@@ -113,28 +115,6 @@ export default function DashboardPage() {
     </select>
   );
 
-  const scopePlaceholder = (
-    <select
-      aria-label="Scope (placeholder)"
-      disabled
-      style={{
-        padding: "6px 10px",
-        borderRadius: 8,
-        border: "1px dashed var(--color-border)",
-        backgroundColor: "var(--color-bg-primary)",
-        color: "var(--color-text-muted)",
-        fontSize: 11,
-        fontWeight: 600,
-        cursor: "not-allowed",
-        minWidth: 140,
-        opacity: 0.85,
-      }}
-      title="Phase 2: environment / team scope"
-    >
-      <option>All scopes</option>
-    </select>
-  );
-
   return (
     <div
       style={{
@@ -179,7 +159,10 @@ export default function DashboardPage() {
             optionalDate={criteriaDate}
             onOptionalDateChange={setCriteriaDate}
             timeWindowSelect={timeWindowSelect}
-            scopePlaceholder={scopePlaceholder}
+            startTime={criteriaStartTime}
+            endTime={criteriaEndTime}
+            onStartTimeChange={setCriteriaStartTime}
+            onEndTimeChange={setCriteriaEndTime}
             onRefresh={handleRefresh}
           />
 

@@ -1,18 +1,33 @@
-import { type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { RefreshCw, Clock, SlidersHorizontal } from "lucide-react";
+
+const timeInputStyle: CSSProperties = {
+  padding: "5px 8px",
+  borderRadius: 8,
+  border: "1px solid var(--color-border)",
+  backgroundColor: "var(--color-bg-primary)",
+  color: "var(--color-text-secondary)",
+  fontSize: 11,
+};
 
 export default function SelectionCriteriaBar({
   optionalDate,
   onOptionalDateChange,
   timeWindowSelect,
-  scopePlaceholder,
+  startTime,
+  endTime,
+  onStartTimeChange,
+  onEndTimeChange,
   onRefresh,
   trailingControls,
 }: {
   optionalDate: string;
   onOptionalDateChange: (isoDate: string) => void;
   timeWindowSelect: ReactNode;
-  scopePlaceholder?: ReactNode;
+  startTime: string;
+  endTime: string;
+  onStartTimeChange: (hhmm: string) => void;
+  onEndTimeChange: (hhmm: string) => void;
   onRefresh: () => void;
   trailingControls?: ReactNode;
 }) {
@@ -44,21 +59,47 @@ export default function SelectionCriteriaBar({
             type="date"
             value={optionalDate}
             onChange={(e) => onOptionalDateChange(e.target.value)}
-            style={{
-              padding: "5px 8px",
-              borderRadius: 8,
-              border: "1px solid var(--color-border)",
-              backgroundColor: "var(--color-bg-primary)",
-              color: "var(--color-text-secondary)",
-              fontSize: 11,
-            }}
+            style={timeInputStyle}
           />
         </label>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)" }} aria-hidden />
-          {timeWindowSelect}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+            paddingLeft: 4,
+            borderLeft: "1px solid var(--color-border)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)" }} aria-hidden />
+            {timeWindowSelect}
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.04em" }}>
+            Range
+          </span>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
+            <span style={{ fontWeight: 600 }}>Start</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => onStartTimeChange(e.target.value)}
+              aria-label="Start time"
+              style={timeInputStyle}
+            />
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
+            <span style={{ fontWeight: 600 }}>End</span>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => onEndTimeChange(e.target.value)}
+              aria-label="End time"
+              style={timeInputStyle}
+            />
+          </label>
         </div>
-        {scopePlaceholder}
         <button
           type="button"
           onClick={onRefresh}

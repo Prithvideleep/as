@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { ChevronDown, AlertOctagon, Server, GitBranch, Link2, Info, CheckCircle2, ArrowRight } from "lucide-react";
+import { ChevronDown, AlertOctagon, Server, GitBranch, Link2, Info, ArrowRight } from "lucide-react";
 import type { CorrelationCluster } from "../../data/mockData";
 
 const SEV_COLOR: Record<string, string> = {
@@ -166,22 +166,6 @@ export default function CorrelationTile({
                     >
                       {SEV_LABEL[cluster.severity] ?? cluster.severity.toUpperCase()}
                     </span>
-                    {cluster.resolutionSummary && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          letterSpacing: "0.05em",
-                          color: "#22C55E",
-                          backgroundColor: "rgba(34,197,94,0.12)",
-                          padding: "2px 6px",
-                          borderRadius: 999,
-                          flexShrink: 0,
-                        }}
-                      >
-                        RESOLVED
-                      </span>
-                    )}
                     <span
                       style={{
                         flex: 1,
@@ -410,55 +394,29 @@ export default function CorrelationTile({
                         )}
                       </Section>
 
-                      {/* Resolution (archive) or Level 2 Placeholder (live) */}
-                      {cluster.resolutionSummary ? (
-                        <Section
-                          icon={<CheckCircle2 style={{ width: 12, height: 12, color: "#22C55E" }} />}
-                          label="Resolution"
-                          color="#22C55E"
+                      <Section
+                        icon={<Link2 style={{ width: 12, height: 12, color: "#6B7280" }} />}
+                        label="Level 2 — Downstream Dependencies"
+                        color="#6B7280"
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 7,
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            backgroundColor: "rgba(107,114,128,0.06)",
+                            border: "1px dashed rgba(107,114,128,0.25)",
+                            marginTop: 4,
+                          }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: 7,
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              backgroundColor: "rgba(34,197,94,0.06)",
-                              border: "1px solid rgba(34,197,94,0.2)",
-                              marginTop: 4,
-                            }}
-                          >
-                            <span style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
-                              {cluster.resolutionSummary}
-                            </span>
-                          </div>
-                        </Section>
-                      ) : (
-                        <Section
-                          icon={<Link2 style={{ width: 12, height: 12, color: "#6B7280" }} />}
-                          label="Level 2 — Downstream Dependencies"
-                          color="#6B7280"
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: 7,
-                              padding: "8px 10px",
-                              borderRadius: 8,
-                              backgroundColor: "rgba(107,114,128,0.06)",
-                              border: "1px dashed rgba(107,114,128,0.25)",
-                              marginTop: 4,
-                            }}
-                          >
-                            <Info style={{ width: 12, height: 12, color: "#6B7280", flexShrink: 0, marginTop: 1 }} />
-                            <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
-                              {cluster.impactedL2Placeholder}
-                            </span>
-                          </div>
-                        </Section>
-                      )}
+                          <Info style={{ width: 12, height: 12, color: "#6B7280", flexShrink: 0, marginTop: 1 }} />
+                          <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
+                            {cluster.impactedL2Placeholder}
+                          </span>
+                        </div>
+                      </Section>
 
                       {/* View Investigation / Resolution link */}
                       <button

@@ -89,7 +89,7 @@ export interface ChatQA {
 
 export const incidents: Incident[] = [
   {
-    id: "CL-001",
+    id: "IN-001",
     name: "Payment Service Cascade Failure",
     severity: "critical",
     status: "active",
@@ -98,7 +98,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T09:14:00Z",
   },
   {
-    id: "CL-002",
+    id: "IN-002",
     name: "Auth Token Expiry Storm",
     severity: "high",
     status: "investigating",
@@ -107,7 +107,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T08:42:00Z",
   },
   {
-    id: "CL-003",
+    id: "IN-003",
     name: "CDN Cache Invalidation Spike",
     severity: "medium",
     status: "active",
@@ -116,7 +116,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T07:58:00Z",
   },
   {
-    id: "CL-004",
+    id: "IN-004",
     name: "Database Connection Pool Exhaustion",
     severity: "critical",
     status: "investigating",
@@ -125,7 +125,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T06:30:00Z",
   },
   {
-    id: "CL-005",
+    id: "IN-005",
     name: "DNS Resolution Latency",
     severity: "low",
     status: "resolved",
@@ -135,7 +135,7 @@ export const incidents: Incident[] = [
     resolutionPriority: "P3",
   },
   {
-    id: "CL-006",
+    id: "IN-006",
     name: "Kubernetes Node Memory Pressure",
     severity: "critical",
     status: "active",
@@ -144,7 +144,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T09:02:00Z",
   },
   {
-    id: "CL-007",
+    id: "IN-007",
     name: "Redis Cache Eviction Spike",
     severity: "medium",
     status: "active",
@@ -153,7 +153,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T08:55:00Z",
   },
   {
-    id: "CL-008",
+    id: "IN-008",
     name: "Kafka Consumer Lag — Orders Topic",
     severity: "high",
     status: "investigating",
@@ -162,7 +162,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T08:20:00Z",
   },
   {
-    id: "CL-009",
+    id: "IN-009",
     name: "SSL Certificate Expiry Warning",
     severity: "medium",
     status: "resolved",
@@ -172,7 +172,7 @@ export const incidents: Incident[] = [
     resolutionPriority: "P4",
   },
   {
-    id: "CL-010",
+    id: "IN-010",
     name: "Load Balancer Health Check Failures",
     severity: "critical",
     status: "active",
@@ -181,7 +181,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T09:20:00Z",
   },
   {
-    id: "CL-011",
+    id: "IN-011",
     name: "S3 Bucket Access Denied Errors",
     severity: "medium",
     status: "investigating",
@@ -190,7 +190,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T07:10:00Z",
   },
   {
-    id: "CL-012",
+    id: "IN-012",
     name: "Elasticsearch Cluster Yellow State",
     severity: "high",
     status: "investigating",
@@ -199,7 +199,7 @@ export const incidents: Incident[] = [
     timestamp: "2026-03-17T06:45:00Z",
   },
   {
-    id: "CL-013",
+    id: "IN-013",
     name: "SMTP Delivery Failures",
     severity: "low",
     status: "resolved",
@@ -210,31 +210,31 @@ export const incidents: Incident[] = [
   },
 
   // ── Scroll-test stubs — critical ──────────────────────────────────────────
-  { id: "CL-T01", name: "API Gateway Circuit Breaker Open",       severity: "critical", status: "active",        alertCount: 38, impactedServices: 7,  timestamp: "2026-03-17T09:30:00Z" },
-  { id: "CL-T02", name: "Postgres Replication Lag Critical",      severity: "critical", status: "investigating", alertCount: 29, impactedServices: 5,  timestamp: "2026-03-17T08:10:00Z" },
-  { id: "CL-T03", name: "Container OOMKill Storm — prod-ns",      severity: "critical", status: "active",        alertCount: 44, impactedServices: 9,  timestamp: "2026-03-17T07:45:00Z" },
+  { id: "IN-T01", name: "API Gateway Circuit Breaker Open",       severity: "critical", status: "active",        alertCount: 38, impactedServices: 7,  timestamp: "2026-03-17T09:30:00Z" },
+  { id: "IN-T02", name: "Postgres Replication Lag Critical",      severity: "critical", status: "investigating", alertCount: 29, impactedServices: 5,  timestamp: "2026-03-17T08:10:00Z" },
+  { id: "IN-T03", name: "Container OOMKill Storm — prod-ns",      severity: "critical", status: "active",        alertCount: 44, impactedServices: 9,  timestamp: "2026-03-17T07:45:00Z" },
 
   // ── Scroll-test stubs — high (warning) ────────────────────────────────────
-  { id: "CL-T04", name: "gRPC Timeout Spike — Checkout Service",  severity: "high",     status: "investigating", alertCount: 21, impactedServices: 4,  timestamp: "2026-03-17T09:00:00Z" },
-  { id: "CL-T05", name: "RabbitMQ Queue Depth Warning",           severity: "high",     status: "active",        alertCount: 17, impactedServices: 3,  timestamp: "2026-03-17T08:35:00Z" },
-  { id: "CL-T06", name: "CDN Origin P99 Latency Elevated",        severity: "high",     status: "active",        alertCount: 13, impactedServices: 2,  timestamp: "2026-03-17T07:20:00Z" },
+  { id: "IN-T04", name: "gRPC Timeout Spike — Checkout Service",  severity: "high",     status: "investigating", alertCount: 21, impactedServices: 4,  timestamp: "2026-03-17T09:00:00Z" },
+  { id: "IN-T05", name: "RabbitMQ Queue Depth Warning",           severity: "high",     status: "active",        alertCount: 17, impactedServices: 3,  timestamp: "2026-03-17T08:35:00Z" },
+  { id: "IN-T06", name: "CDN Origin P99 Latency Elevated",        severity: "high",     status: "active",        alertCount: 13, impactedServices: 2,  timestamp: "2026-03-17T07:20:00Z" },
 
   // ── Scroll-test stubs — medium (minor) ────────────────────────────────────
-  { id: "CL-T07", name: "Disk Usage Warning — log-node-04",       severity: "medium",   status: "active",        alertCount: 9,  impactedServices: 1,  timestamp: "2026-03-17T08:50:00Z" },
-  { id: "CL-T08", name: "Elevated 4xx Rate on /api/orders",       severity: "medium",   status: "investigating", alertCount: 11, impactedServices: 2,  timestamp: "2026-03-17T08:05:00Z" },
-  { id: "CL-T09", name: "Cron Job Missed Schedule — report-gen",  severity: "medium",   status: "active",        alertCount: 6,  impactedServices: 1,  timestamp: "2026-03-17T06:15:00Z" },
+  { id: "IN-T07", name: "Disk Usage Warning — log-node-04",       severity: "medium",   status: "active",        alertCount: 9,  impactedServices: 1,  timestamp: "2026-03-17T08:50:00Z" },
+  { id: "IN-T08", name: "Elevated 4xx Rate on /api/orders",       severity: "medium",   status: "investigating", alertCount: 11, impactedServices: 2,  timestamp: "2026-03-17T08:05:00Z" },
+  { id: "IN-T09", name: "Cron Job Missed Schedule — report-gen",  severity: "medium",   status: "active",        alertCount: 6,  impactedServices: 1,  timestamp: "2026-03-17T06:15:00Z" },
 
   // ── Scroll-test stubs — low (clear) ───────────────────────────────────────
-  { id: "CL-T10", name: "Stale Feature Flag Cleanup Required",    severity: "low",      status: "resolved",      alertCount: 3,  impactedServices: 1,  timestamp: "2026-03-16T14:00:00Z", resolutionPriority: "P4" },
-  { id: "CL-T11", name: "Minor Memory Leak — worker-v2 Sidecar",  severity: "low",      status: "resolved",      alertCount: 4,  impactedServices: 1,  timestamp: "2026-03-15T11:30:00Z", resolutionPriority: "P3" },
-  { id: "CL-T12", name: "Deprecated API Version Still in Use",    severity: "low",      status: "resolved",      alertCount: 2,  impactedServices: 1,  timestamp: "2026-03-14T09:00:00Z", resolutionPriority: "P4" },
+  { id: "IN-T10", name: "Stale Feature Flag Cleanup Required",    severity: "low",      status: "resolved",      alertCount: 3,  impactedServices: 1,  timestamp: "2026-03-16T14:00:00Z", resolutionPriority: "P4" },
+  { id: "IN-T11", name: "Minor Memory Leak — worker-v2 Sidecar",  severity: "low",      status: "resolved",      alertCount: 4,  impactedServices: 1,  timestamp: "2026-03-15T11:30:00Z", resolutionPriority: "P3" },
+  { id: "IN-T12", name: "Deprecated API Version Still in Use",    severity: "low",      status: "resolved",      alertCount: 2,  impactedServices: 1,  timestamp: "2026-03-14T09:00:00Z", resolutionPriority: "P4" },
 ];
 
 // ─── Incident details ───
 
 export const incidentDetails: Record<string, IncidentDetail> = {
-  "CL-001": {
-    id: "CL-001",
+  "IN-001": {
+    id: "IN-001",
     name: "Payment Service Cascade Failure",
     severity: "critical",
     status: "active",
@@ -315,8 +315,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2024-1102", name: "Order Processing Backpressure Event", date: "Dec 19, 2024", resolution: "Introduced message queue buffering between order-service and payment-gateway to absorb traffic spikes.", similarity: 58 },
     ],
   },
-  "CL-002": {
-    id: "CL-002",
+  "IN-002": {
+    id: "IN-002",
     name: "Auth Token Expiry Storm",
     severity: "high",
     status: "investigating",
@@ -385,8 +385,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0307", name: "Identity Provider CPU Saturation", date: "Aug 11, 2025", resolution: "Scaled identity provider horizontally; introduced request queuing to prevent CPU spikes.", similarity: 62 },
     ],
   },
-  "CL-003": {
-    id: "CL-003",
+  "IN-003": {
+    id: "IN-003",
     name: "CDN Cache Invalidation Spike",
     severity: "medium",
     status: "active",
@@ -445,8 +445,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2024-0874", name: "Origin Server Cache Miss Storm", date: "Mar 5, 2024", resolution: "Enabled request coalescing on origin server; added CDN warmup script for bulk publishes.", similarity: 67 },
     ],
   },
-  "CL-004": {
-    id: "CL-004",
+  "IN-004": {
+    id: "IN-004",
     name: "Database Connection Pool Exhaustion",
     severity: "critical",
     status: "investigating",
@@ -517,8 +517,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2024-0531", name: "Postgres Primary Overload", date: "May 31, 2024", resolution: "Implemented PgBouncer transaction-mode pooling to reduce effective connection overhead.", similarity: 60 },
     ],
   },
-  "CL-005": {
-    id: "CL-005",
+  "IN-005": {
+    id: "IN-005",
     name: "DNS Resolution Latency",
     severity: "low",
     status: "resolved",
@@ -568,8 +568,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       "Added DNS latency SLO alerting and runbook link",
     ],
   },
-  "CL-006": {
-    id: "CL-006", name: "Kubernetes Node Memory Pressure", severity: "critical", status: "active",
+  "IN-006": {
+    id: "IN-006", name: "Kubernetes Node Memory Pressure", severity: "critical", status: "active",
     summary: "Three Kubernetes worker nodes hit memory limits simultaneously after a misconfigured HPA scaled a memory-hungry service to 40 replicas. Pod evictions cascaded across the cluster, impacting 9 downstream services.",
     rootCauses: [
       { service: "hpa-controller", description: "Horizontal Pod Autoscaler target was set to CPU utilisation but the workload is memory-bound, causing it to scale aggressively without relieving actual resource pressure.", confidence: 88 },
@@ -598,8 +598,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0601", name: "Memory Leak in Batch Processor v2.8", date: "Nov 5, 2025", resolution: "Rolled back to v2.7; added memory leak detection to CI pipeline.", similarity: 69 },
     ],
   },
-  "CL-007": {
-    id: "CL-007", name: "Redis Cache Eviction Spike", severity: "medium", status: "active",
+  "IN-007": {
+    id: "IN-007", name: "Redis Cache Eviction Spike", severity: "medium", status: "active",
     summary: "Redis maxmemory limit was reached after a traffic spike caused the cache to fill faster than TTLs could expire items. Eviction policy set to allkeys-lru began aggressively evicting hot keys, causing cache miss storms downstream.",
     rootCauses: [
       { service: "redis-primary", description: "maxmemory set to 4GB is insufficient for current traffic volume; eviction policy is expelling hot keys that are immediately re-requested.", confidence: 82 },
@@ -620,8 +620,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0412", name: "Redis OOM During Flash Sale", date: "Sep 18, 2025", resolution: "Increased maxmemory to 8GB; implemented Redis Cluster for horizontal scaling.", similarity: 76 },
     ],
   },
-  "CL-008": {
-    id: "CL-008", name: "Kafka Consumer Lag — Orders Topic", severity: "high", status: "investigating",
+  "IN-008": {
+    id: "IN-008", name: "Kafka Consumer Lag — Orders Topic", severity: "high", status: "investigating",
     summary: "Consumer group for the orders processing topic fell behind by 2.4 million messages after a consumer pod restart loop caused by an uncaught deserialization exception. Messages are accumulating faster than they are being processed.",
     rootCauses: [
       { service: "order-consumer", description: "A new message schema introduced in v2.3.0 is not backward compatible. Consumers on v2.2.x throw a deserialization exception and restart, never committing offsets.", confidence: 91 },
@@ -644,8 +644,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0719", name: "Kafka Schema Incompatibility — Payments Topic", date: "Jan 8, 2026", resolution: "Set schema registry to BACKWARD compatibility; added consumer version checks to deployment pipeline.", similarity: 89 },
     ],
   },
-  "CL-009": {
-    id: "CL-009", name: "SSL Certificate Expiry Warning", severity: "medium", status: "resolved",
+  "IN-009": {
+    id: "IN-009", name: "SSL Certificate Expiry Warning", severity: "medium", status: "resolved",
     summary: "API gateway SSL certificate was 7 days from expiry. Auto-renewal via cert-manager failed due to an expired Let's Encrypt ACME token. Certificate was manually renewed and rotation completed without downtime.",
     rootCauses: [
       { service: "cert-manager", description: "ACME account token used by cert-manager expired. Renewal requests were silently failing for 30 days with no alerting configured.", confidence: 95 },
@@ -669,8 +669,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       "Added alerts for renewal failures and 30/14/7-day expiry",
     ],
   },
-  "CL-010": {
-    id: "CL-010", name: "Load Balancer Health Check Failures", severity: "critical", status: "active",
+  "IN-010": {
+    id: "IN-010", name: "Load Balancer Health Check Failures", severity: "critical", status: "active",
     summary: "Production load balancer removed 7 of 10 backend instances from rotation after health checks began failing following a misconfigured readiness probe update. Live traffic is concentrated on 3 remaining instances causing severe overload.",
     rootCauses: [
       { service: "readiness-probe", description: "Readiness probe path was changed from /health to /healthz in the deployment manifest but the load balancer health check still points to /health, returning 404 and marking instances unhealthy.", confidence: 96 },
@@ -699,8 +699,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0911", name: "Backend Pool Drain During Deployment", date: "Oct 3, 2025", resolution: "Blue/green deployment strategy adopted to prevent live traffic disruption during config changes.", similarity: 67 },
     ],
   },
-  "CL-011": {
-    id: "CL-011", name: "S3 Bucket Access Denied Errors", severity: "medium", status: "investigating",
+  "IN-011": {
+    id: "IN-011", name: "S3 Bucket Access Denied Errors", severity: "medium", status: "investigating",
     summary: "IAM role rotation for the media-upload service assigned an incorrect policy that removed s3:PutObject and s3:GetObject permissions. User file uploads and media retrieval are failing across affected services.",
     rootCauses: [
       { service: "iam-role-media-upload", description: "Automated IAM role rotation applied a baseline policy template that does not include S3 bucket-specific permissions. The previous role had a custom inline policy that was not carried over.", confidence: 89 },
@@ -719,8 +719,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0518", name: "IAM Role Rotation Broke RDS Access", date: "Oct 30, 2025", resolution: "Implemented policy diff validation step in IAM rotation automation.", similarity: 81 },
     ],
   },
-  "CL-012": {
-    id: "CL-012", name: "Elasticsearch Cluster Yellow State", severity: "high", status: "investigating",
+  "IN-012": {
+    id: "IN-012", name: "Elasticsearch Cluster Yellow State", severity: "high", status: "investigating",
     summary: "Elasticsearch cluster entered yellow state after one data node ran out of disk space and was removed from the cluster. Replica shards are unassigned. Primary shards are intact but the cluster lacks redundancy.",
     rootCauses: [
       { service: "es-data-node-03", description: "Data node disk reached 95% threshold. Elasticsearch's flood-stage watermark triggered, blocking all write operations on the node and causing it to be excluded from shard allocation.", confidence: 93 },
@@ -742,8 +742,8 @@ export const incidentDetails: Record<string, IncidentDetail> = {
       { id: "INC-2025-0627", name: "Elasticsearch RED State — Shard Loss", date: "Dec 11, 2025", resolution: "Re-enabled ILM; added 80% disk alert with 48h lead time; expanded node storage to 2TB.", similarity: 77 },
     ],
   },
-  "CL-013": {
-    id: "CL-013", name: "SMTP Delivery Failures", severity: "low", status: "resolved",
+  "IN-013": {
+    id: "IN-013", name: "SMTP Delivery Failures", severity: "low", status: "resolved",
     summary: "Transactional email delivery failed for 2 hours after the SendGrid API key was rotated without updating the application secret. Notification service fell back to retry queue; all queued emails delivered after the key was updated.",
     rootCauses: [
       { service: "notification-service", description: "SendGrid API key was rotated in the secrets manager but the notification service reads the key at startup only, not dynamically. A restart was required to pick up the new key.", confidence: 97 },
@@ -773,7 +773,7 @@ export const incidentDetails: Record<string, IncidentDetail> = {
 // ─── Topology data per incident ───
 
 export const topologyData: Record<string, TopologyData> = {
-  "CL-001": {
+  "IN-001": {
     nodes: [
       { id: "payment-gateway",      label: "Payment Gateway",      status: "root",     type: "service",        description: "Core payment processing service. Handles all transaction requests from the user dashboard and downstream order flow." },
       { id: "user-dashboard",       label: "User Dashboard",       status: "impacted", type: "application",    description: "Customer-facing web application. Initiates payment and order requests on behalf of end users." },
@@ -796,7 +796,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "search-service",     target: "inventory-service",     type: "data-flow",     label: "Event stream" },
     ],
   },
-  "CL-002": {
+  "IN-002": {
     nodes: [
       { id: "identity-provider", label: "Identity Provider", status: "root",     type: "service",     description: "Issues and validates auth tokens. Deployed v2.4.1 which introduced a TTL bug causing mass token expiry." },
       { id: "api-gateway",       label: "API Gateway",       status: "impacted", type: "api",         description: "Central API gateway that validates bearer tokens on every request. Dependent on identity-provider for token verification." },
@@ -811,7 +811,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "api-gateway",    target: "identity-provider", type: "communication", label: "Token validation" },
     ],
   },
-  "CL-003": {
+  "IN-003": {
     nodes: [
       { id: "content-pipeline", label: "Content Pipeline", status: "root",     type: "pipeline",        description: "Automated CMS publishing pipeline. Triggered bulk cache invalidation of 12,000 keys simultaneously." },
       { id: "cdn-edge",         label: "CDN Edge",         status: "impacted", type: "infrastructure",  description: "Global CDN edge network. Cache hit ratio collapsed from 94% to 12% after mass invalidation." },
@@ -822,7 +822,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "cdn-edge",         target: "origin-server", type: "dependency",    label: "Cache miss fallback" },
     ],
   },
-  "CL-004": {
+  "IN-004": {
     nodes: [
       { id: "reporting-service",  label: "Reporting Service",  status: "root",     type: "service",  description: "Scheduled reporting service. A runaway query without a LIMIT clause held 120 DB connections for 22 minutes." },
       { id: "postgres-primary",   label: "Postgres Primary",   status: "impacted", type: "database", description: "Shared primary database. Connection pool of 200 fully exhausted by the reporting service query." },
@@ -839,7 +839,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "search-service",    target: "postgres-primary",  type: "dependency", label: "SQL read-only" },
     ],
   },
-  "CL-005": {
+  "IN-005": {
     nodes: [
       { id: "external-dns", label: "External DNS",  status: "root",    type: "infrastructure", description: "Upstream DNS provider experiencing infrastructure issues. Adding 200ms resolution latency." },
       { id: "api-gateway",  label: "API Gateway",   status: "healthy", type: "api",            description: "API gateway performing DNS lookups on external hostnames. Seeing slightly elevated response times." },
@@ -848,7 +848,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "api-gateway", target: "external-dns", type: "dependency", label: "DNS lookup" },
     ],
   },
-  "CL-006": {
+  "IN-006": {
     nodes: [
       { id: "hpa-controller",   label: "HPA Controller",   status: "root",     type: "infrastructure", description: "Kubernetes HPA misconfigured with CPU metric on memory-bound workload." },
       { id: "data-processor",   label: "Data Processor",   status: "root",     type: "service",        description: "v3.1 contains a memory leak that grows RSS under load." },
@@ -866,7 +866,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "order-service",  target: "notification-svc", type: "data-flow",   label: "Events" },
     ],
   },
-  "CL-007": {
+  "IN-007": {
     nodes: [
       { id: "redis-primary",  label: "Redis Primary",  status: "root",     type: "database",     description: "maxmemory limit reached; eviction storm." },
       { id: "session-service",label: "Session Service", status: "impacted", type: "service",      description: "Session objects 9x larger after v1.9.2." },
@@ -879,7 +879,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "user-dashboard",  target: "api-gateway",     type: "dependency", label: "HTTPS" },
     ],
   },
-  "CL-008": {
+  "IN-008": {
     nodes: [
       { id: "schema-registry",    label: "Schema Registry",    status: "root",     type: "service",   description: "Compatibility mode set to NONE — allowed breaking schema." },
       { id: "order-producer",     label: "Order Producer",     status: "impacted", type: "service",   description: "Publishing v2.3.0 schema incompatible with consumers." },
@@ -894,7 +894,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "order-consumer",    target: "notification-svc",  type: "data-flow",     label: "Events" },
     ],
   },
-  "CL-009": {
+  "IN-009": {
     nodes: [
       { id: "cert-manager", label: "Cert Manager",  status: "root",     type: "infrastructure", description: "ACME token expired — silent renewal failure." },
       { id: "api-gateway",  label: "API Gateway",   status: "impacted", type: "api",            description: "SSL cert 7 days from expiry." },
@@ -905,7 +905,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "mobile-api",   target: "api-gateway", type: "dependency",    label: "HTTPS" },
     ],
   },
-  "CL-010": {
+  "IN-010": {
     nodes: [
       { id: "load-balancer",       label: "Load Balancer",       status: "root",     type: "infrastructure", description: "Removed 7/10 backends — misconfigured health check path." },
       { id: "api-server",          label: "API Server",          status: "impacted", type: "api",            description: "3 remaining instances at 340% load." },
@@ -925,7 +925,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "order-service",   target: "notification-svc", type: "data-flow",    label: "Events" },
     ],
   },
-  "CL-011": {
+  "IN-011": {
     nodes: [
       { id: "iam-role",        label: "IAM Role",           status: "root",     type: "infrastructure", description: "Rotation lost custom inline S3 policy." },
       { id: "media-upload",    label: "Media Upload Svc",   status: "impacted", type: "service",        description: "S3 PutObject/GetObject denied." },
@@ -938,7 +938,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "content-pipeline",target: "media-upload",     type: "dependency",    label: "Asset upload" },
     ],
   },
-  "CL-012": {
+  "IN-012": {
     nodes: [
       { id: "es-node-03",      label: "ES Data Node 03",    status: "root",     type: "database",  description: "Disk at 95% — flood-stage watermark triggered." },
       { id: "search-service",  label: "Search Service",     status: "impacted", type: "service",   description: "Queries hitting degraded cluster." },
@@ -953,7 +953,7 @@ export const topologyData: Record<string, TopologyData> = {
       { source: "audit-logger",   target: "log-aggregator", type: "data-flow",  label: "Log stream" },
     ],
   },
-  "CL-013": {
+  "IN-013": {
     nodes: [
       { id: "notification-svc", label: "Notification Svc",  status: "root",    type: "service",     description: "Stale SendGrid API key in memory after rotation." },
       { id: "user-dashboard",   label: "User Dashboard",    status: "healthy", type: "application", description: "Email confirmations delayed." },
@@ -967,7 +967,7 @@ export const topologyData: Record<string, TopologyData> = {
 // ─── Chat responses ───
 
 export const chatResponses: Record<string, ChatQA[]> = {
-  "CL-001": [
+  "IN-001": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -989,7 +989,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Timeline of events:\n- 09:02 — Config change deployed (rate limiter reduced)\n- 09:05 — Latency spike detected (p99: 4200ms)\n- 09:08 — Payment timeout errors (45% error rate)\n- 09:11 — Order service degraded\n- 09:14 — Connection pool saturated",
     },
   ],
-  "CL-002": [
+  "IN-002": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1001,14 +1001,14 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Recommended actions:\n1. Roll back identity-provider to v2.4.0\n2. Force-refresh all tokens issued in the affected window\n3. Scale identity-provider horizontally to handle residual traffic\n4. Add TTL validation to token issuance pipeline",
     },
   ],
-  "CL-003": [
+  "IN-003": [
     {
       keywords: ["cause", "root", "why"],
       answer:
         "A bulk content publish event in the CMS triggered invalidation of 12,000 cache keys simultaneously, instead of using staggered invalidation. This caused a cache miss storm on CDN edge nodes and overwhelmed the origin server. Confidence: 78%.",
     },
   ],
-  "CL-004": [
+  "IN-004": [
     {
       keywords: ["cause", "root", "why"],
       answer:
@@ -1020,14 +1020,14 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Recommended actions:\n1. Kill the long-running reporting query immediately\n2. Add query timeout limits (max 5 minutes) to the reporting service\n3. Move reporting queries to a read replica\n4. Add LIMIT clauses and pagination to all aggregate reports",
     },
   ],
-  "CL-005": [
+  "IN-005": [
     {
       keywords: ["cause", "root", "why"],
       answer:
         "An upstream DNS provider infrastructure issue caused 200ms additional resolution latency. This was an external issue that resolved automatically after the provider applied a fix. Confidence: 65%.",
     },
   ],
-  "CL-006": [
+  "IN-006": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1049,7 +1049,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Timeline:\n- 08:30 — data-processor v3.1 deployed via ArgoCD\n- 08:48 — HPA scaled from 5 to 40 replicas in 8 minutes\n- 09:02 — 3 worker nodes hit MemoryPressure taint\n- 09:06 — OOMKilled events on 12 pods, cascade begins",
     },
   ],
-  "CL-007": [
+  "IN-007": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1066,7 +1066,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Recommended actions:\n1. Increase Redis maxmemory to 8GB immediately via CONFIG SET\n2. Roll back session-service to v1.9.1 to reduce object payload size\n3. Review session-service v1.9.2 to strip unnecessary fields from session objects\n4. Consider migrating to Redis Cluster for horizontal scaling",
     },
   ],
-  "CL-008": [
+  "IN-008": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1088,7 +1088,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Timeline:\n- 07:00 — order-producer v2.3.0 deployed with new required schema fields\n- 07:15 — order-consumer enters restart loop (deserialization exception)\n- 08:20 — Consumer lag exceeds 500K messages, growing at 80K/min",
     },
   ],
-  "CL-009": [
+  "IN-009": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1100,7 +1100,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "This incident has been resolved. The API gateway certificate was manually renewed. The cert-manager ACME token was rotated and verified. Expiry and renewal failure alerts were added so this cannot silently recur.",
     },
   ],
-  "CL-010": [
+  "IN-010": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1122,7 +1122,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Timeline:\n- 08:50 — Deployment manifest updated with new /healthz probe path\n- 09:05 — LB marks 7/10 instances unhealthy (/health returning 404)\n- 09:20 — Alert fired: traffic concentrated on 3 instances at 340% load",
     },
   ],
-  "CL-011": [
+  "IN-011": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1139,7 +1139,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Recommended actions:\n1. Attach the correct S3 bucket policy to the new IAM role for media-upload-service\n2. Verify S3 PutObject and GetObject succeed after policy update\n3. Update the IAM rotation automation to include a policy diff step\n4. Add a post-rotation smoke test for critical permissions",
     },
   ],
-  "CL-012": [
+  "IN-012": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1161,7 +1161,7 @@ export const chatResponses: Record<string, ChatQA[]> = {
         "Timeline:\n- 3 weeks ago — ILM policy paused during maintenance, not re-enabled\n- 05:00 today — es-data-node-03 disk at 87%, growing at 2GB/hour\n- 06:45 — Flood-stage watermark reached, write block applied\n- 06:50 — Cluster state changed to YELLOW, replica shards unassigned on 14 indices",
     },
   ],
-  "CL-013": [
+  "IN-013": [
     {
       keywords: ["cause", "root", "why", "what happened"],
       answer:
@@ -1176,68 +1176,68 @@ export const chatResponses: Record<string, ChatQA[]> = {
 };
 
 export const suggestedQueries: Record<string, string[]> = {
-  "CL-001": [
+  "IN-001": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
     "Show me the timeline",
   ],
-  "CL-002": [
+  "IN-002": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
   ],
-  "CL-003": [
+  "IN-003": [
     "What caused this issue?",
     "Which services are affected?",
   ],
-  "CL-004": [
-    "What caused this issue?",
-    "Which services are affected?",
-    "How do I fix this?",
-  ],
-  "CL-005": [
-    "What caused this issue?",
-  ],
-  "CL-006": [
-    "What caused this issue?",
-    "Which services are affected?",
-    "How do I fix this?",
-    "Show me the timeline",
-  ],
-  "CL-007": [
+  "IN-004": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
   ],
-  "CL-008": [
+  "IN-005": [
+    "What caused this issue?",
+  ],
+  "IN-006": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
     "Show me the timeline",
   ],
-  "CL-009": [
+  "IN-007": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+  ],
+  "IN-008": [
+    "What caused this issue?",
+    "Which services are affected?",
+    "How do I fix this?",
+    "Show me the timeline",
+  ],
+  "IN-009": [
     "What caused this issue?",
     "Has this been resolved?",
   ],
-  "CL-010": [
+  "IN-010": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
     "Show me the timeline",
   ],
-  "CL-011": [
+  "IN-011": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
   ],
-  "CL-012": [
+  "IN-012": [
     "What caused this issue?",
     "Which services are affected?",
     "How do I fix this?",
     "Show me the timeline",
   ],
-  "CL-013": [
+  "IN-013": [
     "What caused this issue?",
     "Has this been resolved?",
   ],

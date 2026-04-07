@@ -15,7 +15,7 @@ export type CorrelatedDetailRow = {
 };
 
 export type CorrelatedDetailGroup = {
-  /** Internal id, e.g. CL-001 */
+  /** Internal id, e.g. IN-001 */
   incidentId: string;
   owner: CorrelatedDetailRow;
   /** All impacted service names (mock: blast radius + L1 — Phase 2: CMDB). */
