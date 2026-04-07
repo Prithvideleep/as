@@ -1,8 +1,9 @@
-import { useMemo, useCallback, useState, type CSSProperties } from "react";
+import { useMemo, useCallback, useState, type CSSProperties, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, ChevronRight, ChevronDown, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Download, ChevronDown, ArrowRight, AlertOctagon, Server, Link2, Info, CheckCircle2 } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
-import type { CorrelationCluster, Incident, IncidentDetail } from "../../data/mockData";
+import type { CorrelationCluster, Incident, IncidentDetail, BlastRadiusItem, Severity } from "../../data/mockData";
 import {
   buildCorrelatedDetailGroups,
   buildInactiveCorrelatedDetailGroups,
@@ -10,10 +11,9 @@ import {
   correlatedRowsToCsv,
   getImpactedRowsForSelection,
   type CorrelatedDetailGroup,
-  type CorrelatedDetailRow,
 } from "./buildCorrelatedDetailsRows";
 
-const LABEL: React.CSSProperties = {
+const LABEL: CSSProperties = {
   fontSize: 10,
   fontWeight: 700,
   letterSpacing: "0.08em",
@@ -23,28 +23,45 @@ const LABEL: React.CSSProperties = {
   marginBottom: 6,
 };
 
-const HINT: React.CSSProperties = {
+const HINT: CSSProperties = {
   fontSize: 11,
   color: "var(--color-text-muted)",
   marginBottom: 10,
   lineHeight: 1.45,
 };
 
-const COLS = [
-  "No.",
-  "State",
-  "Alert name",
-  "Start time",
-  "Service info",
-  "Owner or Impacted",
-  "App name / AIDE ID",
-  "Associated Incident #",
-  "Associated Change #",
-] as const;
+const TH: CSSProperties = {
+  padding: "10px 12px",
+  fontWeight: 700,
+  color: "var(--color-text-muted)",
+  whiteSpace: "nowrap",
+  fontSize: 11,
+  textAlign: "left",
+  borderBottom: "1px solid var(--color-border)",
+  backgroundColor: "var(--color-bg-primary)",
+};
+
+const SEV_COLOR: Record<string, string> = {
+  critical: "#EF4444",
+  high: "#F97316",
+  medium: "#F59E0B",
+  low: "#22C55E",
+};
+
+const SEV_LABEL: Record<string, string> = {
+  critical: "CRITICAL",
+  high: "HIGH",
+  medium: "MEDIUM",
+  low: "LOW",
+};
 
 const SAMPLE_SIZE = 10;
+/** Columns: No. … Change # + Actions */
+const COL_COUNT = 9;
 
-/** Deterministic shuffle from membership so the same pool doesn’t reshuffle every render. */
+const DEFAULT_L2 =
+  "Downstream dependency mapping requires enriched data pipeline (Phase 2).";
+
 function sampleRandomGroups(groups: CorrelatedDetailGroup[], take: number): CorrelatedDetailGroup[] {
   if (groups.length === 0) return [];
   const arr = [...groups];
@@ -66,6 +83,53 @@ function sampleRandomGroups(groups: CorrelatedDetailGroup[], take: number): Corr
   return arr.slice(0, Math.min(take, arr.length));
 }
 
+function resolveCardContent(
+  group: CorrelatedDetailGroup,
+  cluster: CorrelationCluster | undefined,
+  detail: IncidentDetail | undefined,
+  incident: Incident | undefined
+): {
+  relatedAlerts: { title: string; source: string; timestamp: string }[];
+  impactedL1: BlastRadiusItem[];
+  impactedL2Placeholder: string;
+  resolutionSummary?: string;
+  severity: Severity;
+  title: string;
+} {
+  if (cluster) {
+    return {
+      relatedAlerts: cluster.relatedAlerts,
+      impactedL1: cluster.impactedL1,
+      impactedL2Placeholder: cluster.impactedL2Placeholder,
+      resolutionSummary: cluster.resolutionSummary,
+      severity: cluster.severity,
+      title: cluster.incidentName,
+    };
+  }
+  if (detail) {
+    const relatedAlerts = detail.timeline
+      .filter((t) => t.type === "alert" || t.type === "anomaly")
+      .slice(0, 8)
+      .map((t) => ({ title: t.title, source: t.source, timestamp: t.timestamp }));
+    const impactedL1 = detail.blastRadius.filter((b) => b.severity === "critical" || b.severity === "high");
+    return {
+      relatedAlerts,
+      impactedL1,
+      impactedL2Placeholder: DEFAULT_L2,
+      resolutionSummary: detail.resolutionSummary,
+      severity: detail.severity,
+      title: detail.name,
+    };
+  }
+  return {
+    relatedAlerts: [],
+    impactedL1: [],
+    impactedL2Placeholder: DEFAULT_L2,
+    severity: (incident?.severity ?? "medium") as Severity,
+    title: group.owner.alertName || "Incident",
+  };
+}
+
 export default function AlertCorrelatedDetailsTable({
   clusters,
   incidents,
@@ -76,6 +140,7 @@ export default function AlertCorrelatedDetailsTable({
   incidentDetails: Record<string, IncidentDetail>;
 }) {
   const incidentsById = useMemo(() => Object.fromEntries(incidents.map((i) => [i.id, i])), [incidents]);
+  const clusterById = useMemo(() => Object.fromEntries(clusters.map((c) => [c.incidentId, c])), [clusters]);
 
   const activeGroups = useMemo(
     () => buildCorrelatedDetailGroups(clusters, incidentsById, incidentDetails),
@@ -88,7 +153,6 @@ export default function AlertCorrelatedDetailsTable({
   );
 
   const allGroups = useMemo(() => [...activeGroups, ...inactiveGroups], [activeGroups, inactiveGroups]);
-
   const groupsSignature = useMemo(() => allGroups.map((g) => g.incidentId).sort().join("|"), [allGroups]);
 
   const displayedGroups = useMemo(
@@ -128,13 +192,10 @@ export default function AlertCorrelatedDetailsTable({
         <div>
           <span style={LABEL}>Alert correlated details</span>
           <p style={HINT}>
-            Showing a <strong style={{ color: "var(--color-text-secondary)" }}>random sample of up to {SAMPLE_SIZE}</strong>{" "}
-            owner groups (refreshes when the incident set changes). Use <strong style={{ color: "var(--color-text-secondary)" }}>State</strong>{" "}
-            for Active (green) vs Inactive (grey).             Expand an Active row to see <strong style={{ color: "var(--color-text-secondary)" }}>all</strong> impacted
-            services from the mock blast-radius list; use{" "}
-            <strong style={{ color: "var(--color-text-secondary)" }}>Open investigation</strong> or click{" "}
-            <strong style={{ color: "var(--color-text-secondary)" }}>Associated Incident #</strong> to open that incident in
-            Investigation.
+            Table view with <strong style={{ color: "var(--color-text-secondary)" }}>up to {SAMPLE_SIZE}</strong> sample groups.
+            <strong style={{ color: "#16A34A" }}> Active</strong> rows use green accents;{" "}
+            <strong style={{ color: "var(--color-text-muted)" }}>Inactive</strong> use grey. Expand a row for related alerts, Level 1,
+            blast radius, and Level 2 / resolution.
           </p>
         </div>
         <button
@@ -172,17 +233,19 @@ export default function AlertCorrelatedDetailsTable({
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border)", textAlign: "left" }}>
-                {COLS.map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 12px",
-                      fontWeight: 700,
-                      color: "var(--color-text-muted)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+              <tr style={{ textAlign: "left" }}>
+                {[
+                  "No.",
+                  "State",
+                  "Severity",
+                  "Alert name",
+                  "Start time",
+                  "App name / AIDE ID",
+                  "Associated Incident #",
+                  "Associated Change #",
+                  "Actions",
+                ].map((h, i) => (
+                  <th key={i} style={{ ...TH, textAlign: i === COL_COUNT - 1 ? "right" : "left" }}>
                     {h}
                   </th>
                 ))}
@@ -190,13 +253,16 @@ export default function AlertCorrelatedDetailsTable({
             </thead>
             <tbody>
               {displayedGroups.map((group, idx) => (
-                <GroupRows
+                <CorrelatedDetailTableRows
                   key={group.incidentId}
                   group={group}
                   displayNo={idx + 1}
+                  cluster={clusterById[group.incidentId]}
+                  detail={incidentDetails[group.incidentId]}
+                  incident={incidentsById[group.incidentId]}
                   expanded={expanded.has(group.incidentId)}
                   onToggle={() => toggleGroup(group.incidentId)}
-                  allowImpactedPicker={group.owner.state === "Active"}
+                  isLast={idx === displayedGroups.length - 1}
                 />
               ))}
             </tbody>
@@ -207,48 +273,52 @@ export default function AlertCorrelatedDetailsTable({
   );
 }
 
-function GroupRows({
+function CorrelatedDetailTableRows({
   group,
   displayNo,
+  cluster,
+  detail,
+  incident,
   expanded,
   onToggle,
-  allowImpactedPicker,
+  isLast,
 }: {
   group: CorrelatedDetailGroup;
   displayNo: number;
+  cluster: CorrelationCluster | undefined;
+  detail: IncidentDetail | undefined;
+  incident: Incident | undefined;
   expanded: boolean;
   onToggle: () => void;
-  allowImpactedPicker: boolean;
+  isLast: boolean;
 }) {
   const navigate = useNavigate();
   const { setSelectedIncidentId } = useAppContext();
+  const { owner } = group;
+  const isActive = owner.state === "Active";
+  const stateAccent = isActive ? "#16A34A" : "#64748b";
+  const stateBg = isActive ? "rgba(34, 197, 94, 0.07)" : "rgba(100, 116, 139, 0.09)";
+  const stateColor = isActive ? "#16A34A" : "var(--color-text-muted)";
+
+  const content = resolveCardContent(group, cluster, detail, incident);
+  const sevColor = SEV_COLOR[content.severity] ?? "#6B7280";
 
   const openInvestigation = useCallback(() => {
     setSelectedIncidentId(group.incidentId);
     navigate("/investigation");
   }, [group.incidentId, navigate, setSelectedIncidentId]);
 
-  const { owner } = group;
-  const impacted = useMemo(() => {
-    if (!allowImpactedPicker) return [];
-    return getImpactedRowsForSelection(group, undefined);
-  }, [group, allowImpactedPicker]);
+  const fullBlastServices = useMemo(() => {
+    if (!isActive) return [];
+    return getImpactedRowsForSelection(group, undefined).map((r) => r.service);
+  }, [group, isActive]);
 
-  const hasExpandable = allowImpactedPicker && impacted.length > 0;
-  const actionRowCount = expanded && hasExpandable ? 1 : 0;
-  const rowSpan = 1 + actionRowCount + impacted.length;
+  const inactiveBlastTags = useMemo(() => {
+    if (isActive || !detail) return [];
+    return detail.blastRadius.map((b) => b.service);
+  }, [detail, isActive]);
 
-  const stateColor = owner.state === "Active" ? "#16A34A" : "var(--color-text-muted)";
-  const ownerBg =
-    owner.state === "Active" ? "rgba(34, 197, 94, 0.07)" : "rgba(100, 116, 139, 0.09)";
-
-  const ownerRowStyle: CSSProperties = {
-    borderBottom: "1px solid var(--color-border)",
-    backgroundColor: ownerBg,
-    cursor: hasExpandable ? "pointer" : "default",
-  };
-
-  const incidentButtonStyle: CSSProperties = {
+  const incidentBtn: CSSProperties = {
     background: "none",
     border: "none",
     padding: 0,
@@ -261,64 +331,19 @@ function GroupRows({
     textAlign: "left",
   };
 
-  const commonCells = (r: CorrelatedDetailRow) => (
-    <>
-      <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)" }}>{r.service}</td>
-      <td style={{ padding: "10px 12px", color: "var(--color-text-muted)", fontWeight: 600 }}>{r.role}</td>
-      <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", fontFamily: "ui-monospace, monospace" }}>
-        {r.aideId}
-      </td>
-      <td style={{ padding: "10px 12px" }} onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={openInvestigation} style={incidentButtonStyle} title="Open in Investigation">
-          {r.incidentId}
-        </button>
-      </td>
-      <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)" }}>{r.changeId}</td>
-    </>
-  );
-
-  if (!hasExpandable || !expanded) {
-    return (
-      <tr
-        style={ownerRowStyle}
-        onClick={hasExpandable ? onToggle : undefined}
-        onKeyDown={
-          hasExpandable
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onToggle();
-                }
-              }
-            : undefined
-        }
-        tabIndex={hasExpandable ? 0 : undefined}
-        aria-expanded={hasExpandable ? expanded : undefined}
-      >
-        <td style={{ padding: "10px 12px", fontWeight: 700, verticalAlign: "middle" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            {hasExpandable ? (
-              <span style={{ color: "var(--color-text-muted)", display: "flex" }} aria-hidden>
-                {expanded ? <ChevronDown style={{ width: 15, height: 15 }} /> : <ChevronRight style={{ width: 15, height: 15 }} />}
-              </span>
-            ) : (
-              <span style={{ display: "inline-block", width: 21 }} />
-            )}
-            {displayNo}
-          </span>
-        </td>
-        <td style={{ padding: "10px 12px", fontWeight: 700, color: stateColor }}>{owner.state}</td>
-        <td style={{ padding: "10px 12px", color: "var(--color-text-primary)", maxWidth: 200 }}>{owner.alertName}</td>
-        <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>{owner.startTime}</td>
-        {commonCells(owner)}
-      </tr>
-    );
-  }
+  const rowBgCollapsed = isActive ? "rgba(34, 197, 94, 0.04)" : "rgba(100, 116, 139, 0.05)";
+  const rowStyle: CSSProperties = {
+    borderBottom: expanded ? "none" : isLast ? "none" : "1px solid var(--color-border)",
+    borderLeft: `3px solid ${expanded ? stateAccent : "transparent"}`,
+    backgroundColor: expanded ? stateBg : rowBgCollapsed,
+    cursor: "pointer",
+    transition: "background-color 0.15s, border-color 0.2s",
+  };
 
   return (
     <>
       <tr
-        style={ownerRowStyle}
+        style={rowStyle}
         onClick={onToggle}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -327,97 +352,397 @@ function GroupRows({
           }
         }}
         tabIndex={0}
-        aria-expanded
+        aria-expanded={expanded}
       >
-        <td style={{ padding: "10px 12px", fontWeight: 700, verticalAlign: "top" }} rowSpan={rowSpan}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ color: "var(--color-text-muted)", display: "flex" }} aria-hidden>
-              <ChevronDown style={{ width: 15, height: 15 }} />
-            </span>
-            {displayNo}
+        <td style={{ padding: "10px 12px", fontWeight: 700, verticalAlign: "top" }}>{displayNo}</td>
+        <td style={{ padding: "10px 12px", fontWeight: 700, color: stateColor, verticalAlign: "top" }}>{owner.state}</td>
+        <td style={{ padding: "10px 12px", verticalAlign: "top" }}>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              color: sevColor,
+              backgroundColor: `${sevColor}15`,
+              padding: "3px 8px",
+              borderRadius: 999,
+              display: "inline-block",
+            }}
+          >
+            {SEV_LABEL[content.severity] ?? content.severity.toUpperCase()}
           </span>
         </td>
-        <td style={{ padding: "10px 12px", fontWeight: 700, color: stateColor, verticalAlign: "top" }} rowSpan={rowSpan}>
-          {owner.state}
+        <td style={{ padding: "10px 12px", color: "var(--color-text-primary)", fontWeight: 600, maxWidth: 220, verticalAlign: "top" }}>
+          {content.title}
         </td>
-        <td
-          style={{ padding: "10px 12px", color: "var(--color-text-primary)", maxWidth: 200, verticalAlign: "top" }}
-          rowSpan={rowSpan}
-        >
-          {owner.alertName}
-        </td>
-        <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", whiteSpace: "nowrap", verticalAlign: "top" }} rowSpan={rowSpan}>
+        <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", whiteSpace: "nowrap", verticalAlign: "top" }}>
           {owner.startTime}
         </td>
-        {commonCells(owner)}
-      </tr>
-      <tr
-        style={{
-          borderBottom: "1px solid var(--color-border)",
-          backgroundColor: "rgba(15, 23, 42, 0.04)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <td colSpan={5} style={{ padding: "10px 14px 10px 20px", verticalAlign: "middle" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+        <td
+          style={{
+            padding: "10px 12px",
+            color: "var(--color-text-secondary)",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: 11,
+            verticalAlign: "top",
+          }}
+        >
+          {owner.aideId}
+        </td>
+        <td style={{ padding: "10px 12px", verticalAlign: "top" }} onClick={(e) => e.stopPropagation()}>
+          <button type="button" onClick={openInvestigation} style={incidentBtn} title="Open in Investigation">
+            {owner.incidentId}
+          </button>
+        </td>
+        <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", verticalAlign: "top" }}>{owner.changeId}</td>
+        <td
+          style={{ padding: "10px 12px", verticalAlign: "top", whiteSpace: "nowrap" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                openInvestigation();
+              onClick={onToggle}
+              title={expanded ? "Collapse" : "Expand"}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 4,
+                cursor: "pointer",
+                color: "var(--color-text-muted)",
+                display: "flex",
               }}
+            >
+              <ChevronDown
+                style={{
+                  width: 16,
+                  height: 16,
+                  transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.25s ease",
+                }}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={openInvestigation}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                padding: "8px 14px",
-                borderRadius: 10,
-                border: "none",
-                backgroundColor: "#EB5928",
-                color: "#fff",
-                fontSize: 12,
+                gap: 4,
+                padding: "5px 10px",
+                borderRadius: 8,
+                border: `1px solid ${sevColor}35`,
+                backgroundColor: `${sevColor}10`,
+                color: sevColor,
+                fontSize: 10,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
             >
-              Open investigation
-              <ArrowRight style={{ width: 15, height: 15 }} />
+              Investigate
+              <ArrowRight style={{ width: 10, height: 10 }} />
             </button>
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
-              All impacted services from blast radius (mock) are listed below.
-            </span>
           </div>
         </td>
       </tr>
-      {impacted.map((r) => (
-        <tr
-          key={r.id}
-          style={{
-            borderBottom: "1px solid var(--color-border)",
-            backgroundColor: "rgba(15, 23, 42, 0.025)",
-          }}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <tr key={`${group.incidentId}-detail`}>
+            <td
+              colSpan={COL_COUNT}
+              style={{
+                padding: 0,
+                borderBottom: isLast ? "none" : "1px solid var(--color-border)",
+                backgroundColor: "var(--color-bg-primary)",
+                verticalAlign: "top",
+                borderLeft: `3px solid ${stateAccent}`,
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                style={{
+                  borderTop: "1px solid var(--color-border)",
+                  background: `linear-gradient(180deg, ${stateAccent}0c 0%, transparent 36px)`,
+                }}
+              >
+                <div
+                  style={{
+                    maxHeight: 360,
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                    padding: "12px 16px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <ExpandedDetailBody
+                    content={content}
+                    sevColor={sevColor}
+                    isActive={isActive}
+                    fullBlastServices={fullBlastServices}
+                    inactiveBlastTags={inactiveBlastTags}
+                    openInvestigation={openInvestigation}
+                  />
+                </div>
+              </motion.div>
+            </td>
+          </tr>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+type CardContent = ReturnType<typeof resolveCardContent>;
+
+function ExpandedDetailBody({
+  content,
+  sevColor,
+  isActive,
+  fullBlastServices,
+  inactiveBlastTags,
+  openInvestigation,
+}: {
+  content: CardContent;
+  sevColor: string;
+  isActive: boolean;
+  fullBlastServices: string[];
+  inactiveBlastTags: string[];
+  openInvestigation: () => void;
+}) {
+  return (
+    <>
+      <DetailSection
+        icon={<AlertOctagon style={{ width: 12, height: 12, color: sevColor }} />}
+        label="Related Alerts"
+        color={sevColor}
+      >
+        {content.relatedAlerts.length === 0 ? (
+          <EmptyNote text="No related alert events recorded." />
+        ) : (
+          content.relatedAlerts.map((a, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 0",
+                borderBottom: i < content.relatedAlerts.length - 1 ? "1px dashed var(--color-border)" : "none",
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  backgroundColor: sevColor,
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ flex: 1, fontSize: 12, color: "var(--color-text-secondary)" }}>{a.title}</span>
+              <span style={{ fontSize: 10, color: "var(--color-text-muted)", flexShrink: 0 }}>
+                {a.source} · {a.timestamp}
+              </span>
+            </div>
+          ))
+        )}
+      </DetailSection>
+
+      <DetailSection
+        icon={<Server style={{ width: 12, height: 12, color: "#F97316" }} />}
+        label="Level 1 — Directly Impacted Services"
+        color="#F97316"
+      >
+        {content.impactedL1.length === 0 ? (
+          <EmptyNote text="No high-severity impacted services identified." />
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {content.impactedL1.map((svc) => (
+              <span
+                key={svc.service}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  backgroundColor: `${SEV_COLOR[svc.severity] ?? "#6B7280"}15`,
+                  color: SEV_COLOR[svc.severity] ?? "#6B7280",
+                  border: `1px solid ${SEV_COLOR[svc.severity] ?? "#6B7280"}30`,
+                }}
+                title={svc.impact}
+              >
+                {svc.service}
+              </span>
+            ))}
+          </div>
+        )}
+      </DetailSection>
+
+      {isActive && fullBlastServices.length > 0 && (
+        <DetailSection
+          icon={<Server style={{ width: 12, height: 12, color: "#EB5928" }} />}
+          label="Impacted services (full blast radius)"
+          color="#EB5928"
         >
-          <td
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {fullBlastServices.map((svc) => (
+              <span
+                key={svc}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  backgroundColor: "rgba(235, 89, 40, 0.08)",
+                  color: "#EB5928",
+                  border: "1px solid rgba(235, 89, 40, 0.25)",
+                }}
+              >
+                {svc}
+              </span>
+            ))}
+          </div>
+        </DetailSection>
+      )}
+
+      {!isActive && inactiveBlastTags.length > 0 && (
+        <DetailSection
+          icon={<Server style={{ width: 12, height: 12, color: "#64748b" }} />}
+          label="Blast radius (record)"
+          color="#64748b"
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {inactiveBlastTags.map((svc) => (
+              <span
+                key={svc}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  backgroundColor: "rgba(100, 116, 139, 0.1)",
+                  color: "var(--color-text-secondary)",
+                  border: "1px solid rgba(100, 116, 139, 0.22)",
+                }}
+              >
+                {svc}
+              </span>
+            ))}
+          </div>
+        </DetailSection>
+      )}
+
+      {content.resolutionSummary ? (
+        <DetailSection
+          icon={<CheckCircle2 style={{ width: 12, height: 12, color: "#22C55E" }} />}
+          label="Resolution"
+          color="#22C55E"
+        >
+          <div
             style={{
-              padding: "10px 12px 10px 20px",
-              color: "var(--color-text-secondary)",
-              borderLeft: "3px solid rgba(235, 89, 40, 0.35)",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 7,
+              padding: "8px 10px",
+              borderRadius: 8,
+              backgroundColor: "rgba(34,197,94,0.06)",
+              border: "1px solid rgba(34,197,94,0.2)",
+              marginTop: 4,
             }}
           >
-            {r.service}
-          </td>
-          <td style={{ padding: "10px 12px", color: "var(--color-text-muted)", fontWeight: 600 }}>{r.role}</td>
-          <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)", fontFamily: "ui-monospace, monospace" }}>
-            {r.aideId}
-          </td>
-          <td style={{ padding: "10px 12px" }} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={openInvestigation} style={incidentButtonStyle} title="Open in Investigation">
-              {r.incidentId}
-            </button>
-          </td>
-          <td style={{ padding: "10px 12px", color: "var(--color-text-secondary)" }}>{r.changeId}</td>
-        </tr>
-      ))}
+            <span style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
+              {content.resolutionSummary}
+            </span>
+          </div>
+        </DetailSection>
+      ) : (
+        <DetailSection
+          icon={<Link2 style={{ width: 12, height: 12, color: "#6B7280" }} />}
+          label="Level 2 — Downstream Dependencies"
+          color="#6B7280"
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 7,
+              padding: "8px 10px",
+              borderRadius: 8,
+              backgroundColor: "rgba(107,114,128,0.06)",
+              border: "1px dashed rgba(107,114,128,0.25)",
+              marginTop: 4,
+            }}
+          >
+            <Info style={{ width: 12, height: 12, color: "#6B7280", flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55 }}>
+              {content.impactedL2Placeholder}
+            </span>
+          </div>
+        </DetailSection>
+      )}
+
+      <button
+        type="button"
+        onClick={openInvestigation}
+        style={{
+          alignSelf: "flex-start",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "var(--color-accent)",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "4px 0",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        Open investigation →
+      </button>
     </>
+  );
+}
+
+function DetailSection({
+  icon,
+  label,
+  color,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  color: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+        {icon}
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            color,
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function EmptyNote({ text }: { text: string }) {
+  return (
+    <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic" }}>{text}</span>
   );
 }
