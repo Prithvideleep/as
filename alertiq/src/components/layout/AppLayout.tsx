@@ -1,8 +1,9 @@
 import { Outlet } from "react-router-dom";
 import { useState } from "react";
-import { Bot, Menu, X } from "lucide-react";
+import { Bot, Menu, X, LayoutDashboard } from "lucide-react";
 import { useTriageDrawer } from "../../context/TriageDrawerContext";
 import Sidebar from "./Sidebar";
+import optumLogo from "../../assets/optum-logo.svg";
 
 const FAB_ACCENT = "#EB5928";
 
@@ -15,38 +16,137 @@ export default function AppLayout() {
       {/* Mobile overlay */}
       {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
 
-      <Sidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
-      {/*
-        overflow:hidden here — each page is responsible for its own scroll.
-        Chat needs a fixed-height flex column; other pages get a scrollable wrapper.
-      */}
-      <main className="app-main">
-        {/* Mobile topbar */}
-        <div className="mobile-topbar">
+      {/* ── Global top bar — full width ──────────────────────────────── */}
+      <div
+        className="app-topbar"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "0 20px",
+          height: 52,
+          borderBottom: "1px solid var(--color-border)",
+          backgroundColor: "var(--color-bg-card)",
+        }}
+      >
+        {/* Optum logo */}
+        <img
+          src={optumLogo}
+          alt="Optum"
+          style={{ height: 28, width: "auto", flexShrink: 0, objectFit: "contain" }}
+        />
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 24, backgroundColor: "var(--color-border)", flexShrink: 0 }} />
+
+        {/* Page title — centred */}
+        <div
+          style={{
+            flex: 1,
+            textAlign: "center",
+            fontSize: 14,
+            fontWeight: 700,
+            color: "var(--color-text-primary)",
+            padding: "5px 18px",
+            border: "1px solid var(--color-border)",
+            borderRadius: 8,
+            backgroundColor: "var(--color-bg-primary)",
+            maxWidth: 280,
+            margin: "0 auto",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          Alert IQ Dashboard
+        </div>
+
+        {/* Right controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto", flexShrink: 0 }}>
           <button
-            onClick={() => setMobileOpen((v) => !v)}
+            type="button"
+            title="Dashboard tools (placeholder)"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              padding: "7px 10px",
-              borderRadius: 10,
-              backgroundColor: "var(--color-bg-card)",
+              justifyContent: "center",
+              width: 34,
+              height: 34,
+              borderRadius: 8,
               border: "1px solid var(--color-border)",
-              color: "var(--color-text-secondary)",
+              backgroundColor: "#6366F1",
+              color: "#fff",
               cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 700,
             }}
           >
-            {mobileOpen ? <X style={{ width: 16, height: 16 }} /> : <Menu style={{ width: 16, height: 16 }} />}
-            Menu
+            <LayoutDashboard style={{ width: 16, height: 16 }} />
           </button>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--color-text-primary)" }}>AlertIQ</div>
-          <div style={{ width: 64 }} />
+
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
+            Admin
+          </span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                backgroundColor: "var(--color-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--color-text-secondary)",
+                flexShrink: 0,
+              }}
+            >
+              U
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
+              User
+            </span>
+          </div>
         </div>
-        <Outlet />
-      </main>
+      </div>
+
+      {/* ── Body row: sidebar + main ─────────────────────────────────── */}
+      <div className="app-body">
+        <Sidebar mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} />
+
+        {/*
+          overflow:hidden here — each page is responsible for its own scroll.
+          Chat needs a fixed-height flex column; other pages get a scrollable wrapper.
+        */}
+        <main className="app-main">
+          {/* Mobile topbar */}
+          <div className="mobile-topbar">
+            <button
+              onClick={() => setMobileOpen((v) => !v)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 10px",
+                borderRadius: 10,
+                backgroundColor: "var(--color-bg-card)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              {mobileOpen ? <X style={{ width: 16, height: 16 }} /> : <Menu style={{ width: 16, height: 16 }} />}
+              Menu
+            </button>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--color-text-primary)" }}>AlertIQ</div>
+            <div style={{ width: 64 }} />
+          </div>
+          <Outlet />
+        </main>
+      </div>
 
       {!triageOpen && (
         <button

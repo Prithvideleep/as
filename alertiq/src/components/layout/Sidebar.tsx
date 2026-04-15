@@ -1,5 +1,5 @@
 import { Link, useLocation, matchPath, type Location } from "react-router-dom";
-import { LayoutDashboard, ListOrdered, GitBranch, Search, Network, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, ListOrdered, GitBranch, Search, Network } from "lucide-react";
 
 const SIDEBAR_BG = "#1C1C28";
 const SIDEBAR_BORDER = "rgba(255,255,255,0.07)";
@@ -44,36 +44,6 @@ export default function Sidebar({
         overflowY: "auto",
       }}
     >
-      {/* Logo */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "20px 20px 18px",
-          borderBottom: `1px solid ${SIDEBAR_BORDER}`,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: ACTIVE_COLOR,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <ShieldAlert style={{ width: 18, height: 18, color: "#fff" }} />
-        </div>
-        <div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.3px" }}>AlertIQ</span>
-          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>SmartSwarm</p>
-        </div>
-      </div>
-
       {/* Nav */}
       <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
         <p

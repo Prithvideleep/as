@@ -22,21 +22,6 @@ import { clearLegacyDashboardLayoutPrefs } from "../lib/dashboardLayoutPrefs";
 const DASH_STACK_GAP = 24;
 const DASH_MAX_WIDTH_PX = 1760;
 
-function formatDashboardClock(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  const abs = d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const diff = Math.floor((Date.now() - d.getTime()) / 60000);
-  const rel = diff <= 1 ? "just now" : `${diff} min ago`;
-  return `${abs} · ${rel}`;
-}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -50,8 +35,6 @@ export default function DashboardPage() {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
-  const [criteriaStartTime, setCriteriaStartTime] = useState("00:00");
-  const [criteriaEndTime, setCriteriaEndTime] = useState("23:59");
 
   const [viewOffset, setViewOffset] = useState<null | 15 | 30 | 45 | 60>(null);
   const [snapshot, setSnapshot] = useState<AlertLevelSnapshot>(initialSnapshot);
@@ -79,11 +62,6 @@ export default function DashboardPage() {
       navigate("/incident-details");
     },
     [navigate, setSelectedIncidentId]
-  );
-
-  const headerDataFreshness = useMemo(
-    () => formatDashboardClock(activeSnapshot.lastUpdated),
-    [activeSnapshot.lastUpdated]
   );
 
   const timeWindowSelect = (
@@ -128,41 +106,10 @@ export default function DashboardPage() {
     >
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div style={{ maxWidth: DASH_MAX_WIDTH_PX, margin: "0 auto", width: "100%" }}>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              marginBottom: 16,
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 4 }}>
-                Alert IQ Dashboard
-              </h1>
-              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 4 }}>
-                Real-time AI-grouped alert intelligence and cluster monitoring
-              </p>
-              <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-                <strong style={{ color: "var(--color-text-secondary)" }}>Data freshness (alert level):</strong>{" "}
-                {headerDataFreshness}
-              </p>
-            </div>
-          </motion.div>
-
           <SelectionCriteriaBar
             optionalDate={criteriaDate}
             onOptionalDateChange={setCriteriaDate}
             timeWindowSelect={timeWindowSelect}
-            startTime={criteriaStartTime}
-            endTime={criteriaEndTime}
-            onStartTimeChange={setCriteriaStartTime}
-            onEndTimeChange={setCriteriaEndTime}
             onRefresh={handleRefresh}
           />
 

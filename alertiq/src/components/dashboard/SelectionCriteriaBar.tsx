@@ -1,36 +1,45 @@
-import { type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useMemo } from "react";
 import { RefreshCw, Clock, SlidersHorizontal } from "lucide-react";
 
-const timeInputStyle: CSSProperties = {
+function randomTime(minHour = 0, maxHour = 23): string {
+  const h = Math.floor(Math.random() * (maxHour - minHour + 1)) + minHour;
+  const m = Math.floor(Math.random() * 60);
+  const s = Math.floor(Math.random() * 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+const inputStyle: CSSProperties = {
   padding: "5px 8px",
   borderRadius: 8,
   border: "1px solid var(--color-border)",
   backgroundColor: "var(--color-bg-primary)",
-  color: "var(--color-text-secondary)",
+  color: "var(--color-text-muted)",
   fontSize: 11,
+  minWidth: 90,
+  outline: "none",
+};
+
+const dateInputStyle: CSSProperties = {
+  ...inputStyle,
+  color: "var(--color-text-secondary)",
 };
 
 export default function SelectionCriteriaBar({
   optionalDate,
   onOptionalDateChange,
   timeWindowSelect,
-  startTime,
-  endTime,
-  onStartTimeChange,
-  onEndTimeChange,
   onRefresh,
   trailingControls,
 }: {
   optionalDate: string;
   onOptionalDateChange: (isoDate: string) => void;
   timeWindowSelect: ReactNode;
-  startTime: string;
-  endTime: string;
-  onStartTimeChange: (hhmm: string) => void;
-  onEndTimeChange: (hhmm: string) => void;
   onRefresh: () => void;
   trailingControls?: ReactNode;
 }) {
+  const startTime = useMemo(() => randomTime(0, 11), []);
+  const endTime   = useMemo(() => randomTime(12, 23), []);
+
   return (
     <div
       style={{
@@ -52,54 +61,60 @@ export default function SelectionCriteriaBar({
           Applies to all tiles on the overview.
         </span>
       </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {/* Date */}
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
           <span style={{ fontWeight: 600 }}>Date</span>
           <input
             type="date"
             value={optionalDate}
             onChange={(e) => onOptionalDateChange(e.target.value)}
-            style={timeInputStyle}
+            style={dateInputStyle}
           />
         </label>
+
+        {/* Time section */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 10,
             flexWrap: "wrap",
-            paddingLeft: 4,
+            paddingLeft: 8,
             borderLeft: "1px solid var(--color-border)",
           }}
         >
+          {/* Time window dropdown */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <Clock style={{ width: 12, height: 12, color: "var(--color-text-muted)" }} aria-hidden />
             {timeWindowSelect}
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)", letterSpacing: "0.04em" }}>
-            Range
-          </span>
+
+          {/* Start time */}
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
-            <span style={{ fontWeight: 600 }}>Start</span>
+            <span style={{ fontWeight: 600 }}>Start time</span>
             <input
-              type="time"
+              type="text"
+              readOnly
               value={startTime}
-              onChange={(e) => onStartTimeChange(e.target.value)}
-              aria-label="Start time"
-              style={timeInputStyle}
+              style={{ ...inputStyle, color: "var(--color-text-secondary)" }}
             />
           </label>
+
+          {/* End time */}
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--color-text-muted)" }}>
-            <span style={{ fontWeight: 600 }}>End</span>
+            <span style={{ fontWeight: 600 }}>End time</span>
             <input
-              type="time"
+              type="text"
+              readOnly
               value={endTime}
-              onChange={(e) => onEndTimeChange(e.target.value)}
-              aria-label="End time"
-              style={timeInputStyle}
+              style={{ ...inputStyle, color: "var(--color-text-secondary)" }}
             />
           </label>
         </div>
+
+        {/* Refresh */}
         <button
           type="button"
           onClick={onRefresh}
@@ -120,6 +135,7 @@ export default function SelectionCriteriaBar({
           <RefreshCw style={{ width: 12, height: 12 }} />
           Refresh
         </button>
+
         {trailingControls}
       </div>
     </div>
