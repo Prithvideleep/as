@@ -1250,6 +1250,7 @@ export interface AlertLevelSnapshot {
   intervalMinutes: number;
   levels: {
     critical: number;
+    major: number;
     warning: number;
     minor: number;
     clear: number;
@@ -1264,6 +1265,7 @@ export const alertLevelSnapshot: AlertLevelSnapshot = {
     critical: incidents
       .filter((i) => i.severity === "critical" && i.status !== "resolved")
       .reduce((s, i) => s + i.alertCount, 0),
+    major: 464, // Placeholder from API example
     warning: incidents
       .filter((i) => i.severity === "high" && i.status !== "resolved")
       .reduce((s, i) => s + i.alertCount, 0),
@@ -1293,28 +1295,28 @@ export const historicalAlertSnapshots: HistoricalAlertSnapshot[] = [
     label: "–15 min",
     lastUpdated: new Date(_now - 15 * 60 * 1000).toISOString(),
     intervalMinutes: 15,
-    levels: { critical: 162, warning: 68, minor: 40, clear: 3, error: 2 },
+    levels: { critical: 162, major: 42, warning: 68, minor: 40, clear: 3, error: 2 },
   },
   {
     offsetMinutes: 30,
     label: "–30 min",
     lastUpdated: new Date(_now - 30 * 60 * 1000).toISOString(),
     intervalMinutes: 15,
-    levels: { critical: 148, warning: 55, minor: 35, clear: 5, error: 4 },
+    levels: { critical: 148, major: 38, warning: 55, minor: 35, clear: 5, error: 4 },
   },
   {
     offsetMinutes: 45,
     label: "–45 min",
     lastUpdated: new Date(_now - 45 * 60 * 1000).toISOString(),
     intervalMinutes: 15,
-    levels: { critical: 131, warning: 49, minor: 28, clear: 7, error: 6 },
+    levels: { critical: 131, major: 32, warning: 49, minor: 28, clear: 7, error: 6 },
   },
   {
     offsetMinutes: 60,
     label: "–60 min",
     lastUpdated: new Date(_now - 60 * 60 * 1000).toISOString(),
     intervalMinutes: 15,
-    levels: { critical: 112, warning: 41, minor: 22, clear: 9, error: 8 },
+    levels: { critical: 112, major: 25, warning: 41, minor: 22, clear: 9, error: 8 },
   },
 ];
 

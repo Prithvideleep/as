@@ -11,6 +11,7 @@ const LEVELS: {
   band: "wide" | "narrow";
 }[] = [
   { key: "critical", label: "Critical", color: "#EF4444", band: "wide" },
+  { key: "major", label: "Major", color: "#F43F5E", band: "wide" },
   { key: "warning", label: "Warning", color: "#F97316", band: "wide" },
   { key: "minor", label: "Minor", color: "#F59E0B", band: "narrow" },
   { key: "clear", label: "Clear", color: "#22C55E", band: "narrow" },
@@ -34,7 +35,7 @@ function formatTimestamp(iso: string): string {
 }
 
 interface Props {
-  snapshot: AlertLevelSnapshot;
+  snapshot: AlertLevelSnapshot | null;
   onRefresh?: () => void;
   /** When provided (archive mode), shows period info instead of interval/updated text */
   periodLabel?: string;
@@ -69,7 +70,6 @@ export default function AlertLevelBar({
 }: Props) {
   const isSidebar = layout === "sidebar";
   const displayLevels = demoteClearAndError ? LEVELS.filter((lv) => lv.key !== "clear" && lv.key !== "error") : LEVELS;
-  const max = Math.max(...displayLevels.map((lv) => snapshot.levels[lv.key]), 1);
   /** Dashboard tile: stretch rows so the card isn’t half empty white space. */
   const embeddedRowsFill = embedded && visualization === "rows" && !isSidebar;
 
@@ -138,6 +138,8 @@ export default function AlertLevelBar({
           <>
             Period: {periodLabel} &nbsp;·&nbsp; {windowCount ?? 0} incident{windowCount === 1 ? "" : "s"} reviewed
           </>
+        ) : !snapshot ? (
+          <span className="pulse" style={{ opacity: 0.5 }}>Waiting for API sync...</span>
         ) : (
           <>
             Interval: {snapshot.intervalMinutes} mins &nbsp;·&nbsp;{" "}
@@ -147,18 +149,25 @@ export default function AlertLevelBar({
         )}
       </p>
 
-      {visualization === "columns" ? (
+      {!snapshot ? (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: visualization === "columns" ? chartMinHeight : 100 }}>
+           <div style={{ textAlign: "center", opacity: 0.4, fontSize: 11, fontWeight: 600 }}>
+              <div className="pulse" style={{ marginBottom: 8 }}>API DISCONNECTED</div>
+              <div style={{ fontSize: 10 }}>NO FALLBACK DATA LOADED</div>
+           </div>
+        </div>
+      ) : visualization === "columns" ? (
         <ColumnChart
           displayLevels={displayLevels}
           snapshot={snapshot}
-          max={max}
+          max={Math.max(...displayLevels.map((lv) => snapshot.levels[lv.key]), 1)}
           chartMinHeight={chartMinHeight}
         />
       ) : (
         <RowChart
           displayLevels={displayLevels}
           snapshot={snapshot}
-          max={max}
+          max={Math.max(...displayLevels.map((lv) => snapshot.levels[lv.key]), 1)}
           isSidebar={isSidebar}
           fillVertical={embeddedRowsFill}
         />

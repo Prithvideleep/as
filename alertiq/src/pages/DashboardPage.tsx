@@ -37,14 +37,71 @@ export default function DashboardPage() {
   });
 
   const [viewOffset, setViewOffset] = useState<null | 15 | 30 | 45 | 60>(null);
-  const [snapshot, setSnapshot] = useState<AlertLevelSnapshot>(initialSnapshot);
-  const handleRefresh = useCallback(() => {
-    setViewOffset(null);
-    setSnapshot((prev) => ({ ...prev, lastUpdated: new Date().toISOString() }));
+  
+  // Create an empty state for initial load (no fallback to mock data)
+  const [snapshot, setSnapshot] = useState<AlertLevelSnapshot | null>(null);
+
+  const fetchDashboardSnapshot = useCallback(async () => {
+    const apiEndpoint = "dem/api/place hoder";
+    console.log(`[AlertLevel API] Attempting fetch from: ${apiEndpoint}`);
+    
+    try {
+      const response = await fetch(apiEndpoint);
+      
+      if (!response.ok) {
+        console.error(`[AlertLevel API] Network response was not ok. Status: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const rawData = await response.json();
+      console.log("[AlertLevel API] Raw data received:", rawData);
+      
+      // Detailed schema validation checks
+      if (!rawData.levels) {
+        console.warn("[AlertLevel API] Missing 'levels' object in response.");
+      }
+      if (!rawData.last_updated) {
+        console.warn("[AlertLevel API] Missing 'last_updated' field in response.");
+      }
+
+      const mappedSnapshot: AlertLevelSnapshot = {
+        lastUpdated: rawData.last_updated,
+        intervalMinutes: rawData.interval_minutes,
+        levels: {
+          critical: rawData.levels?.critical ?? 0,
+          major: rawData.levels?.major ?? 0,
+          warning: rawData.levels?.warning ?? 0,
+          minor: rawData.levels?.minor ?? 0,
+          clear: rawData.levels?.clear ?? 0,
+          error: rawData.levels?.error ?? 0
+        }
+      };
+      
+      console.log("[AlertLevel API] Successfully mapped data:", mappedSnapshot);
+      setSnapshot(mappedSnapshot);
+    } catch (error) {
+      console.error("[AlertLevel API] Integration failed:", error);
+      if (error instanceof TypeError) {
+        console.error("[AlertLevel API] Possible CORS issue or Network failure.");
+      }
+    }
   }, []);
 
-  const activeSnapshot: AlertLevelSnapshot = useMemo(() => {
+  useEffect(() => {
+    fetchDashboardSnapshot();
+    const interval = setInterval(fetchDashboardSnapshot, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchDashboardSnapshot]);
+
+  const handleRefresh = useCallback(() => {
+    setViewOffset(null);
+    fetchDashboardSnapshot();
+  }, [fetchDashboardSnapshot]);
+
+  const activeSnapshot: AlertLevelSnapshot | null = useMemo(() => {
     if (viewOffset === null) return snapshot;
+    // Historical data is intentionally kept as mock data for structure, 
+    // but the LIVE card will be empty without a successful API call.
     return historicalAlertSnapshots.find((s) => s.offsetMinutes === viewOffset) ?? snapshot;
   }, [viewOffset, snapshot]);
 
